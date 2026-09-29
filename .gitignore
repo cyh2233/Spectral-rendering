@@ -1,0 +1,10 @@
+/build*/
+/out/
+*.coeff
+*.skycache
+__pycache__/
+*.pyc
+.venv/
+/tests/data/tmp/
+.vscode/
+.idea/

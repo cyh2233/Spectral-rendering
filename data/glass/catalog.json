@@ -1,0 +1,27 @@
+{
+  "_comment": "Refractive index models (wavelength in micrometres). sellmeier: n^2 = 1 + sum B_i l^2 / (l^2 - C_i). power_series: n = sum c * l^p over [c, p] pairs. Sources noted per entry.",
+  "N-BK7": {
+    "model": "sellmeier", "B": [1.03961212, 0.231792344, 1.01046945], "C": [0.00600069867, 0.0200179144, 103.560653],
+    "source": "SCHOTT optical glass datasheet"
+  },
+  "fused_silica": {
+    "model": "sellmeier", "B": [0.6961663, 0.4079426, 0.8974794], "C": [0.004679148, 0.01351206, 97.93400],
+    "source": "Malitson 1965"
+  },
+  "soda_lime": {
+    "model": "power_series", "coefficients": [[1.5130, 0], [-0.003169, 2], [0.003962, -2]],
+    "source": "Rubin 1985, soda-lime clear float glass (refractiveindex.info), 0.31-4.6 um"
+  },
+  "polycarbonate": {
+    "model": "sellmeier", "B": [1.4182], "C": [0.021304],
+    "source": "Sultanova et al. 2009 (headlamp covers)"
+  },
+  "pvb_approx": {
+    "model": "power_series", "coefficients": [[1.4747, 0], [0.0036, -2]],
+    "source": "APPROXIMATE Cauchy fit for PVB interlayer (n_d ~ 1.48); replace with measured data"
+  },
+  "pmma": {
+    "model": "sellmeier", "B": [0.99654, 0.18964, 0.00411], "C": [0.00787, 0.02191, 3.85727],
+    "source": "Szczurowski 2013 (PMMA, lamp lenses)"
+  }
+}
