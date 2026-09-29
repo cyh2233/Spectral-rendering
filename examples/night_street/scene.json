@@ -1,0 +1,27 @@
+{
+  "_comment": "Night street: high-pressure sodium street lamp (CIE HP1) and LED headlights (CIE LED-B5), photometric units (cd). Shows NIR content of the sources in the 780-1000 nm bands (HP1 data stops at 780 nm; see data/spectra/emitters).",
+  "version": 2,
+  "camera": { "position": [0, 1.3, 0], "look_at": [0, 1.0, -15], "fov_deg": 60, "resolution": [480, 270] },
+  "materials": { "definitions": {
+      "asphalt": { "reflectance": "approx_asphalt_dry", "roughness": 0.9, "specular": 0.5 },
+      "lane":    { "reflectance": "approx_lane_marking_white", "roughness": 0.6 },
+      "pole":    { "reflectance": 0.3, "metallic": 0.8, "roughness": 0.4 },
+      "car":     { "reflectance": "approx_car_paint_blue", "roughness": 0.3 } } },
+  "instances": [
+    { "primitive": "quad", "size": [200, 400], "material": "asphalt", "seg_id": 1 },
+    { "primitive": "quad", "size": [0.15, 400], "material": "lane", "seg_id": 24, "translate": [3.3, 0.002, 0] },
+    { "primitive": "box", "size": [0.15, 6, 0.15], "material": "pole", "seg_id": 6, "translate": [5, 3, -20] },
+    { "primitive": "box", "size": [1.8, 1.4, 4.4], "material": "car", "seg_id": 14, "translate": [-1.8, 0.7, -25] }
+  ],
+  "lights": [
+    { "type": "point", "name": "streetlamp", "position": [4.5, 6.0, -20],
+      "emission": { "type": "library", "name": "cie_hp1", "photometric": 15000.0 } },
+    { "type": "spot", "name": "headlight_L", "position": [-2.5, 0.7, -22.8], "direction": [0, -0.05, 1],
+      "cone_inner_deg": 10, "cone_outer_deg": 25, "emission": { "type": "library", "name": "cie_led_b5", "photometric": 10000.0 } },
+    { "type": "spot", "name": "headlight_R", "position": [-1.1, 0.7, -22.8], "direction": [0, -0.05, 1],
+      "cone_inner_deg": 10, "cone_outer_deg": 25, "emission": { "type": "library", "name": "cie_led_b5", "photometric": 10000.0 } },
+    { "type": "sky", "model": "simple", "sky_radiance": { "type": "cie", "name": "D65", "scale": 1e-7 } }
+  ],
+  "render": { "spp": 64, "max_depth": 5, "bands": { "min": 380, "max": 1000, "step": 5 } },
+  "output": { "npz": "out/night.npz", "preview_png": "out/night_srgb.png" }
+}

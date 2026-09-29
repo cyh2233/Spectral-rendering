@@ -155,3 +155,11 @@ TEST_CASE("Prague sky model (runs only when SPECTRAL_PRAGUE_DATASET is set)") {
   CHECK(e550 > 0.5);
   CHECK(e550 < 2.0);
 }
+
+TEST_CASE("spectrum integral normalization (Blender lamp watts)") {
+  json j = {{"materials", {{"definitions", {{"m", {{"emission", {{"type", "blackbody"}, {"temperature", 4000},
+                                                                  {"integral", 25.0}}}}}}}}}};
+  auto s = load_scene_json(j, ".");
+  auto le = s->band_spectrum(s->materials()[0].emission_spec);
+  CHECK(from_bands(le, s->grid).integral(380.f, 780.f) == doctest::Approx(25.0).epsilon(2e-2));
+}

@@ -1,0 +1,482 @@
+{
+ "_comment": "X-Rite ColorChecker (measured BabelColor spectra) under D65 sun + sky. seg_id = patch index + 1.",
+ "version": 2,
+ "camera": {
+  "position": [
+   0,
+   8,
+   0.01
+  ],
+  "look_at": [
+   0,
+   0,
+   0
+  ],
+  "up": [
+   0,
+   0,
+   -1
+  ],
+  "fov_deg": 48,
+  "resolution": [
+   480,
+   360
+  ]
+ },
+ "instances": [
+  {
+   "primitive": "quad",
+   "size": [
+    0.9,
+    0.9
+   ],
+   "translate": [
+    -2.5,
+    0.001,
+    -1.5
+   ],
+   "seg_id": 1,
+   "material": {
+    "reflectance": "colorchecker_babel:dark_skin",
+    "specular": 0.0
+   }
+  },
+  {
+   "primitive": "quad",
+   "size": [
+    0.9,
+    0.9
+   ],
+   "translate": [
+    -1.5,
+    0.001,
+    -1.5
+   ],
+   "seg_id": 2,
+   "material": {
+    "reflectance": "colorchecker_babel:light_skin",
+    "specular": 0.0
+   }
+  },
+  {
+   "primitive": "quad",
+   "size": [
+    0.9,
+    0.9
+   ],
+   "translate": [
+    -0.5,
+    0.001,
+    -1.5
+   ],
+   "seg_id": 3,
+   "material": {
+    "reflectance": "colorchecker_babel:blue_sky",
+    "specular": 0.0
+   }
+  },
+  {
+   "primitive": "quad",
+   "size": [
+    0.9,
+    0.9
+   ],
+   "translate": [
+    0.5,
+    0.001,
+    -1.5
+   ],
+   "seg_id": 4,
+   "material": {
+    "reflectance": "colorchecker_babel:foliage",
+    "specular": 0.0
+   }
+  },
+  {
+   "primitive": "quad",
+   "size": [
+    0.9,
+    0.9
+   ],
+   "translate": [
+    1.5,
+    0.001,
+    -1.5
+   ],
+   "seg_id": 5,
+   "material": {
+    "reflectance": "colorchecker_babel:blue_flower",
+    "specular": 0.0
+   }
+  },
+  {
+   "primitive": "quad",
+   "size": [
+    0.9,
+    0.9
+   ],
+   "translate": [
+    2.5,
+    0.001,
+    -1.5
+   ],
+   "seg_id": 6,
+   "material": {
+    "reflectance": "colorchecker_babel:bluish_green",
+    "specular": 0.0
+   }
+  },
+  {
+   "primitive": "quad",
+   "size": [
+    0.9,
+    0.9
+   ],
+   "translate": [
+    -2.5,
+    0.001,
+    -0.5
+   ],
+   "seg_id": 7,
+   "material": {
+    "reflectance": "colorchecker_babel:orange",
+    "specular": 0.0
+   }
+  },
+  {
+   "primitive": "quad",
+   "size": [
+    0.9,
+    0.9
+   ],
+   "translate": [
+    -1.5,
+    0.001,
+    -0.5
+   ],
+   "seg_id": 8,
+   "material": {
+    "reflectance": "colorchecker_babel:purplish_blue",
+    "specular": 0.0
+   }
+  },
+  {
+   "primitive": "quad",
+   "size": [
+    0.9,
+    0.9
+   ],
+   "translate": [
+    -0.5,
+    0.001,
+    -0.5
+   ],
+   "seg_id": 9,
+   "material": {
+    "reflectance": "colorchecker_babel:moderate_red",
+    "specular": 0.0
+   }
+  },
+  {
+   "primitive": "quad",
+   "size": [
+    0.9,
+    0.9
+   ],
+   "translate": [
+    0.5,
+    0.001,
+    -0.5
+   ],
+   "seg_id": 10,
+   "material": {
+    "reflectance": "colorchecker_babel:purple",
+    "specular": 0.0
+   }
+  },
+  {
+   "primitive": "quad",
+   "size": [
+    0.9,
+    0.9
+   ],
+   "translate": [
+    1.5,
+    0.001,
+    -0.5
+   ],
+   "seg_id": 11,
+   "material": {
+    "reflectance": "colorchecker_babel:yellow_green",
+    "specular": 0.0
+   }
+  },
+  {
+   "primitive": "quad",
+   "size": [
+    0.9,
+    0.9
+   ],
+   "translate": [
+    2.5,
+    0.001,
+    -0.5
+   ],
+   "seg_id": 12,
+   "material": {
+    "reflectance": "colorchecker_babel:orange_yellow",
+    "specular": 0.0
+   }
+  },
+  {
+   "primitive": "quad",
+   "size": [
+    0.9,
+    0.9
+   ],
+   "translate": [
+    -2.5,
+    0.001,
+    0.5
+   ],
+   "seg_id": 13,
+   "material": {
+    "reflectance": "colorchecker_babel:blue",
+    "specular": 0.0
+   }
+  },
+  {
+   "primitive": "quad",
+   "size": [
+    0.9,
+    0.9
+   ],
+   "translate": [
+    -1.5,
+    0.001,
+    0.5
+   ],
+   "seg_id": 14,
+   "material": {
+    "reflectance": "colorchecker_babel:green",
+    "specular": 0.0
+   }
+  },
+  {
+   "primitive": "quad",
+   "size": [
+    0.9,
+    0.9
+   ],
+   "translate": [
+    -0.5,
+    0.001,
+    0.5
+   ],
+   "seg_id": 15,
+   "material": {
+    "reflectance": "colorchecker_babel:red",
+    "specular": 0.0
+   }
+  },
+  {
+   "primitive": "quad",
+   "size": [
+    0.9,
+    0.9
+   ],
+   "translate": [
+    0.5,
+    0.001,
+    0.5
+   ],
+   "seg_id": 16,
+   "material": {
+    "reflectance": "colorchecker_babel:yellow",
+    "specular": 0.0
+   }
+  },
+  {
+   "primitive": "quad",
+   "size": [
+    0.9,
+    0.9
+   ],
+   "translate": [
+    1.5,
+    0.001,
+    0.5
+   ],
+   "seg_id": 17,
+   "material": {
+    "reflectance": "colorchecker_babel:magenta",
+    "specular": 0.0
+   }
+  },
+  {
+   "primitive": "quad",
+   "size": [
+    0.9,
+    0.9
+   ],
+   "translate": [
+    2.5,
+    0.001,
+    0.5
+   ],
+   "seg_id": 18,
+   "material": {
+    "reflectance": "colorchecker_babel:cyan",
+    "specular": 0.0
+   }
+  },
+  {
+   "primitive": "quad",
+   "size": [
+    0.9,
+    0.9
+   ],
+   "translate": [
+    -2.5,
+    0.001,
+    1.5
+   ],
+   "seg_id": 19,
+   "material": {
+    "reflectance": "colorchecker_babel:white_9_5_05_d",
+    "specular": 0.0
+   }
+  },
+  {
+   "primitive": "quad",
+   "size": [
+    0.9,
+    0.9
+   ],
+   "translate": [
+    -1.5,
+    0.001,
+    1.5
+   ],
+   "seg_id": 20,
+   "material": {
+    "reflectance": "colorchecker_babel:neutral_8_23_d",
+    "specular": 0.0
+   }
+  },
+  {
+   "primitive": "quad",
+   "size": [
+    0.9,
+    0.9
+   ],
+   "translate": [
+    -0.5,
+    0.001,
+    1.5
+   ],
+   "seg_id": 21,
+   "material": {
+    "reflectance": "colorchecker_babel:neutral_6_5_44_d",
+    "specular": 0.0
+   }
+  },
+  {
+   "primitive": "quad",
+   "size": [
+    0.9,
+    0.9
+   ],
+   "translate": [
+    0.5,
+    0.001,
+    1.5
+   ],
+   "seg_id": 22,
+   "material": {
+    "reflectance": "colorchecker_babel:neutral_5_70_d",
+    "specular": 0.0
+   }
+  },
+  {
+   "primitive": "quad",
+   "size": [
+    0.9,
+    0.9
+   ],
+   "translate": [
+    1.5,
+    0.001,
+    1.5
+   ],
+   "seg_id": 23,
+   "material": {
+    "reflectance": "colorchecker_babel:neutral_3_5_1_05_d",
+    "specular": 0.0
+   }
+  },
+  {
+   "primitive": "quad",
+   "size": [
+    0.9,
+    0.9
+   ],
+   "translate": [
+    2.5,
+    0.001,
+    1.5
+   ],
+   "seg_id": 24,
+   "material": {
+    "reflectance": "colorchecker_babel:black_2_1_5_d",
+    "specular": 0.0
+   }
+  },
+  {
+   "primitive": "quad",
+   "size": [
+    7,
+    5
+   ],
+   "seg_id": 100,
+   "material": {
+    "reflectance": 0.05,
+    "specular": 0.0
+   }
+  }
+ ],
+ "lights": [
+  {
+   "type": "sky",
+   "model": "simple",
+   "sky_radiance": {
+    "type": "cie",
+    "name": "D65",
+    "scale": 0.0005
+   },
+   "sun": {
+    "elevation_deg": 60,
+    "azimuth_deg": 160,
+    "irradiance": {
+     "type": "cie",
+     "name": "D65",
+     "photometric": 80000.0
+    }
+   }
+  }
+ ],
+ "render": {
+  "spp": 32,
+  "max_depth": 3,
+  "bands": {
+   "min": 380,
+   "max": 780,
+   "step": 5
+  }
+ },
+ "output": {
+  "exr": "out/colorchecker.exr",
+  "npz": "out/colorchecker.npz",
+  "preview_png": "out/colorchecker_srgb.png"
+ }
+}

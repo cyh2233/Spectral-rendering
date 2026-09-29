@@ -1,4 +1,5 @@
 #include <chrono>
+#include <filesystem>
 #include <cstdio>
 #include <stdexcept>
 
@@ -72,6 +73,11 @@ SpectralImage Renderer::render() {
 }
 
 void Renderer::write_outputs(const SpectralImage& img, const OutputSettings& out) {
+  for (const std::string* p : {&out.exr, &out.npz, &out.preview_png}) {
+    if (p->empty()) continue;
+    std::filesystem::path parent = std::filesystem::path(*p).parent_path();
+    if (!parent.empty()) std::filesystem::create_directories(parent);
+  }
   if (!out.exr.empty()) write_spectral_exr(img, out.exr, out.exr_half);
   if (!out.npz.empty()) write_spectral_npz(img, out.npz);
   if (!out.preview_png.empty()) write_preview_png(img, out.preview_png);

@@ -38,6 +38,7 @@ def main(argv=None):
     w.add_argument("--wedge-mrad", type=float, default=0.0)
     w.add_argument("--layers", default="soda_lime:2.1,pvb_approx:0.76,soda_lime:2.1")
     w.add_argument("--wavelengths", type=float, nargs="+", default=[400, 450, 500, 550, 600, 650, 700, 800, 900, 1000])
+    w.add_argument("--no-refocus", action="store_true", help="keep the on-axis defocus of the windshield")
     w.add_argument("--psf-pixel-um", type=float, default=0.5)
     w.add_argument("--psf-size", type=int, default=64)
     w.add_argument("-o", "--output", required=True)
@@ -71,7 +72,8 @@ def main(argv=None):
         ws = Windshield(layers=layers, rake_deg=args.rake, radius_mm=args.radius, distance_mm=args.distance,
                         wedge_mrad=args.wedge_mrad)
         pkg = windshield_package(ws, args.focal_length, args.f_number, args.wavelengths,
-                                 _fields_grid(args.fov[0], args.fov[1], args.grid), args.psf_pixel_um, args.psf_size)
+                                 _fields_grid(args.fov[0], args.fov[1], args.grid), args.psf_pixel_um, args.psf_size,
+                                 refocus=not args.no_refocus)
     elif args.cmd == "vendor":
         from .vendor import build_package_from_manifest
         pkg = build_package_from_manifest(args.manifest)

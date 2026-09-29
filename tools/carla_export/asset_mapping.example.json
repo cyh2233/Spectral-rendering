@@ -1,0 +1,18 @@
+{
+  "_comment": "Maps CARLA maps/blueprints to glTF assets exported once from Unreal (see docs/carla_export.md). Paths are relative to the scene JSON.",
+  "town": {
+    "Town10HD_Opt": {
+      "path": "assets/Town10HD_Opt.glb",
+      "seg_id_by_material": { "(?i)road": 1, "(?i)sidewalk": 2, "(?i)(building|wall)": 3, "(?i)(tree|leaf|foliage)": 9,
+                              "(?i)(lane|roadline)": 24 }
+    }
+  },
+  "blueprints": {
+    "vehicle.tesla.model3": { "path": "assets/vehicles/tesla_model3.glb", "seg_id": 14,
+      "material_overrides": [ { "match": "(?i)paint|body", "reflectance": "approx_car_paint_white", "metallic": 0.6, "roughness": 0.3 } ] },
+    "vehicle.audi.a2": { "path": "assets/vehicles/audi_a2.glb", "seg_id": 14 },
+    "walker.pedestrian.0001": { "path": "assets/walkers/pedestrian_0001.glb", "seg_id": 12 }
+  },
+  "headlight": { "cone_inner_deg": 12, "cone_outer_deg": 30, "down_tilt": 0.03 },
+  "render": { "spp": 256, "max_depth": 8, "bands": { "min": 380, "max": 1000, "step": 5 } }
+}

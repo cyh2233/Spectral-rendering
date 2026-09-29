@@ -1,0 +1,39 @@
+{
+  "_comment": "Camera behind a raked laminated-glass windshield (solid dielectric slab with green-tint absorption). Daylight: simple D65 sky + sun. Primitives only, no external assets.",
+  "version": 2,
+  "camera": { "position": [0, 1.25, 0], "look_at": [0, 1.15, -10], "fov_deg": 60, "resolution": [640, 360] },
+  "materials": {
+    "definitions": {
+      "asphalt":   { "reflectance": "approx_asphalt_dry", "roughness": 0.9, "specular": 0.5 },
+      "lane":      { "reflectance": "approx_lane_marking_white", "roughness": 0.6 },
+      "yellow":    { "reflectance": "approx_lane_marking_yellow", "roughness": 0.6 },
+      "red_car":   { "reflectance": "approx_car_paint_red", "roughness": 0.25, "metallic": 0.0 },
+      "grass":     { "reflectance": "approx_vegetation_leaf", "roughness": 0.9, "specular": 0.2 },
+      "dashboard": { "reflectance": "approx_dashboard_black_pvc", "roughness": 0.7 },
+      "windshield": { "bsdf": "dielectric", "glass": "soda_lime",
+                      "internal_transmittance": "approx_windshield_green_5mm", "thickness_mm": 5.0 }
+    }
+  },
+  "instances": [
+    { "primitive": "quad", "size": [400, 400], "material": "grass", "seg_id": 9, "translate": [0, -0.01, 0] },
+    { "primitive": "quad", "size": [7, 400], "material": "asphalt", "seg_id": 1 },
+    { "primitive": "quad", "size": [0.15, 400], "material": "lane", "seg_id": 24, "translate": [3.3, 0.002, 0] },
+    { "primitive": "quad", "size": [0.15, 400], "material": "yellow", "seg_id": 24, "translate": [-3.3, 0.002, 0] },
+    { "primitive": "quad", "size": [0.15, 3], "material": "lane", "seg_id": 24, "translate": [0, 0.002, -12] },
+    { "primitive": "quad", "size": [0.15, 3], "material": "lane", "seg_id": 24, "translate": [0, 0.002, -20] },
+    { "primitive": "quad", "size": [0.15, 3], "material": "lane", "seg_id": 24, "translate": [0, 0.002, -28] },
+    { "primitive": "box", "size": [1.8, 1.4, 4.4], "material": "red_car", "seg_id": 14, "translate": [1.6, 0.7, -18] },
+    { "primitive": "box", "size": [1.6, 0.05, 0.6], "material": "dashboard", "seg_id": 30, "translate": [0, 0.95, -0.75] },
+    { "primitive": "box", "size": [1.6, 0.9, 0.005], "material": "windshield", "seg_id": 31,
+      "rotate_deg": [-60, 0, 0], "translate": [0, 1.25, -0.8] }
+  ],
+  "lights": [
+    { "type": "sky", "model": "simple",
+      "sky_radiance": { "type": "cie", "name": "D65", "scale": 0.0005 },
+      "sun": { "elevation_deg": 35, "azimuth_deg": 200,
+               "irradiance": { "type": "cie", "name": "D65", "photometric": 90000.0 } } }
+  ],
+  "render": { "spp": 64, "max_depth": 6, "seed": 1, "bands": { "min": 380, "max": 1000, "step": 5 } },
+  "output": { "exr": "out/windshield.exr", "npz": "out/windshield.npz", "preview_png": "out/windshield_srgb.png",
+              "metadata": { "example": "windshield" } }
+}

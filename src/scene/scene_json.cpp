@@ -329,6 +329,15 @@ class Loader {
       if (!(y > 0)) fail(where, "photometric normalization of a spectrum with zero luminance");
       scale *= float(spec["photometric"].get<double>() / y);
     }
+    if (spec.contains("integral")) {
+      // Scale so that the integral of S over [lo, hi] nm equals the given value (e.g. Blender lamp
+      // watts / (4 pi) for a point light's radiant intensity over the visible range).
+      auto range = spec.value("integral_range_nm", std::vector<float>{380.f, 780.f});
+      if (range.size() != 2 || !(range[1] > range[0])) fail(where, "integral_range_nm must be [lo, hi]");
+      double integ = from_bands(out, g).integral(range[0], range[1]);
+      if (!(integ > 0)) fail(where, "cannot normalise a spectrum with zero integral");
+      scale *= float(spec["integral"].get<double>() / integ);
+    }
     std::string norm = spec.value("normalize", std::string());
     if (norm == "peak") {
       float m = *std::max_element(out.begin(), out.end());
