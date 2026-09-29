@@ -2,7 +2,7 @@ file(GLOB SPECTRAL_TEST_SOURCES CONFIGURE_DEPENDS unit/*.cpp integration/*.cpp)
 add_executable(spectral_tests test_main.cpp ${SPECTRAL_TEST_SOURCES})
 target_link_libraries(spectral_tests PRIVATE spectral)
 target_include_directories(spectral_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ${PROJECT_SOURCE_DIR}/third_party/doctest
-  ${PROJECT_SOURCE_DIR}/src)
+  ${PROJECT_SOURCE_DIR}/src ${PROJECT_SOURCE_DIR}/third_party/tinyexr)
 target_compile_definitions(spectral_tests PRIVATE
   SPECTRAL_TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/data"
   SPECTRAL_TEST_TMP_DIR="${CMAKE_CURRENT_BINARY_DIR}/tmp"

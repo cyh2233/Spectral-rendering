@@ -1,0 +1,16 @@
+{
+  "_comment": "Default name -> spectrum assignments for CARLA/Unreal-style material names. Enable with materials.use_default_overrides = true. All referenced spectra are APPROXIMATE placeholders; see data/spectra/materials/README.md.",
+  "overrides": [
+    { "match": "(?i)(road|asphalt)(?!.*(mark|line))", "reflectance": "approx_asphalt_dry" },
+    { "match": "(?i)(sidewalk|curb|concrete|pavement)", "reflectance": "approx_concrete" },
+    { "match": "(?i)(lane|roadline|road_?mark).*(yellow)|yellow.*(line|mark)", "reflectance": "approx_lane_marking_yellow" },
+    { "match": "(?i)(lane|roadline|road_?mark)", "reflectance": "approx_lane_marking_white" },
+    { "match": "(?i)(leaf|leaves|foliage|tree|bush|hedge)", "reflectance": "approx_vegetation_leaf" },
+    { "match": "(?i)(grass|lawn)", "reflectance": "approx_vegetation_leaf" },
+    { "match": "(?i)(sign).*(retro|reflect)", "reflectance": "approx_retroreflective_sheeting_white" },
+    { "match": "(?i)windshield|windscreen", "bsdf": "dielectric", "glass": "soda_lime",
+      "internal_transmittance": "approx_windshield_green_5mm", "thickness_mm": 5.0 },
+    { "match": "(?i)(window|glass)(?!.*(windshield|windscreen))", "bsdf": "thin_dielectric", "glass": "soda_lime" },
+    { "match": "(?i)dashboard", "reflectance": "approx_dashboard_black_pvc", "roughness": 0.6 }
+  ]
+}

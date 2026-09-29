@@ -3,6 +3,8 @@
 #include "spectral/kernel/camera.h"
 #include "spectral/kernel/light.h"
 #include "spectral/scene/gltf_loader.h"
+#include <cstdlib>
+
 #include "spectral/sky/sky_model.h"
 
 using namespace spectral;
@@ -108,4 +110,48 @@ TEST_CASE("sky plugin through the C ABI") {
   CHECK(sd.x == doctest::Approx(std::cos(30 * kPi / 180)).epsilon(1e-4));  // azimuth 90 = east = +X
   CHECK(sun_lookup(v, sd, L));
   CHECK(L.v[0] == doctest::Approx(1000.f * 400.f / 500.f).epsilon(1e-3));
+}
+
+TEST_CASE("default material overrides map CARLA-style names to spectra") {
+  json j = {{"assets", {{"obj", {{"path", "gltf/test_asset.gltf"}}}}},
+            {"materials", {{"use_default_overrides", true}}},
+            {"instances", {{{"asset", "obj"}}}}};
+  auto s = load_scene_json(j, SPECTRAL_TEST_DATA_DIR);
+  const auto& glass = s->materials()[s->instances()[2].material];
+  CHECK(glass.type == kMatThinDielectric);  // "M_Glass" matches (?i)(window|glass)
+  CHECK(glass.ior_spec >= 0);
+  const auto& paint = s->materials()[s->instances()[0].material];
+  CHECK(paint.type == kMatPbr);
+  CHECK(paint.reflectance_spec < 0);  // no rule for "M_Paint_Red"
+  CHECK_THROWS_WITH_AS(load_scene_json({{"materials", {{"overrides", {{{"match", "("}}}}}},
+                                        {"assets", {{"obj", {{"path", "gltf/test_asset.gltf"}}}}},
+                                        {"instances", {{{"asset", "obj"}}}}},
+                                       SPECTRAL_TEST_DATA_DIR),
+                       doctest::Contains("invalid regular expression"), std::runtime_error);
+}
+
+TEST_CASE("Prague sky model (runs only when SPECTRAL_PRAGUE_DATASET is set)") {
+  const char* ds = std::getenv("SPECTRAL_PRAGUE_DATASET");
+  if (!ds || !prague_sky_available()) {
+    MESSAGE("skipped: set SPECTRAL_PRAGUE_DATASET to a PragueSkyModelDataset*.dat file");
+    return;
+  }
+  json j = {{"render", {{"bands", {{"min", 400}, {"max", 1000}, {"step", 20}}}}},
+            {"lights", {{{"type", "sky"}, {"model", "prague"}, {"dataset", ds},
+                         {"sun", {{"elevation_deg", 45}, {"azimuth_deg", 180}}}, {"table_resolution", {64, 32}},
+                         {"cache", false}}}}};
+  auto s = load_scene_json(j, ".");
+  SceneView v = s->view();
+  Spectrum zen, hor;
+  env_lookup(v, Vec3(0, 1, 0), zen);
+  env_lookup(v, normalize(Vec3(1, 0.05f, 0)), hor);
+  CHECK(zen.v[s->grid.nearest_band(450.f)] > zen.v[s->grid.nearest_band(700.f)]);  // blue sky
+  REQUIRE(v.sun_light >= 0);
+  Spectrum sun;
+  CHECK(sun_lookup(v, s->lights()[v.sun_light].direction, sun));
+  // Direct normal irradiance at 550 nm for a clear sky at 45 deg: order 1 W/(m^2 nm).
+  double half = std::acos(s->lights()[v.sun_light].cos_max);
+  double e550 = sun.v[s->grid.nearest_band(560.f)] * 2 * kPi * (1 - std::cos(half));
+  CHECK(e550 > 0.5);
+  CHECK(e550 < 2.0);
 }

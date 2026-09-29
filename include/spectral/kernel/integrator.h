@@ -98,7 +98,8 @@ SPECTRAL_FN void trace_path(const SceneView& s, const Isect& isect, Ray ray, Rng
   bool prev_specular = true;  // camera vertex acts as a delta
   Vec3 prev_p = ray.o;
 
-  for (int bounce = 0;; ++bounce) {
+  int glass_events = 0;
+  for (int bounce = 0;;) {
     Hit hit;
     if (!isect.closest(ray, kInf, &hit)) {
       // Escaped: environment + sun disk.
@@ -147,7 +148,9 @@ SPECTRAL_FN void trace_path(const SceneView& s, const Isect& isect, Ray ray, Rng
 
     BsdfSample bs;
     if (mat.type != kMatPbr) {
-      // Glass: delta events only.
+      // Glass: delta events only. They do not count towards max_depth (a windshield in front
+      // of the camera must not consume the bounce budget), but are bounded separately.
+      if (++glass_events > s.params.max_glass_events) break;
       if (!glass_sample(sp, si.wo, sp.frame.z, si.front, rng.next1d(), beta, bs)) break;
       (void)rng.next2d();  // keep dimension usage aligned with the PBR branch
       bool through = (bs.event == kEventPassThrough || bs.event == kEventSpecularTransmit);
@@ -209,12 +212,13 @@ SPECTRAL_FN void trace_path(const SceneView& s, const Isect& isect, Ray ray, Rng
       prev_specular = false;
       prev_p = si.p;
       ray = spawn_ray(si.p, si.ng, wi);
+      ++bounce;
     }
 
     // Russian roulette.
     float m = beta.max_value();
     if (!(m > 0.f)) break;
-    if (bounce >= s.params.rr_depth) {
+    if (bounce + glass_events >= s.params.rr_depth) {
       float q = minf(1.f, m);
       if (rng.next1d() >= q) break;
       beta *= 1.f / q;

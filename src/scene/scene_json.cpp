@@ -91,8 +91,25 @@ Affine parse_transform(const json& o, const std::string& where) {
   return compose(t, compose(r, s));
 }
 
+// Regex search with support for a leading "(?i)" (case-insensitive) flag, which
+// std::regex (ECMAScript) does not accept inline. Compiled patterns are cached.
 bool regex_match_name(const std::string& pattern, const std::string& name) {
-  return std::regex_search(name, std::regex(pattern));
+  static std::map<std::string, std::regex> cache;
+  auto it = cache.find(pattern);
+  if (it == cache.end()) {
+    std::string pat = pattern;
+    auto flags = std::regex::ECMAScript;
+    if (pat.rfind("(?i)", 0) == 0) {
+      pat = pat.substr(4);
+      flags |= std::regex::icase;
+    }
+    try {
+      it = cache.emplace(pattern, std::regex(pat, flags)).first;
+    } catch (const std::regex_error& e) {
+      throw std::runtime_error("scene JSON: invalid regular expression '" + pattern + "': " + e.what());
+    }
+  }
+  return std::regex_search(name, it->second);
 }
 
 class Loader {
@@ -134,6 +151,7 @@ class Loader {
     sc.render.light_reference_distance = r.value("light_reference_distance", sc.render.light_reference_distance);
     sc.params.max_depth = r.value("max_depth", sc.params.max_depth);
     sc.params.rr_depth = r.value("rr_depth", sc.params.rr_depth);
+    sc.params.max_glass_events = r.value("max_glass_events", sc.params.max_glass_events);
     sc.params.seed = r.value("seed", uint64_t(0));
     sc.params.transparent_shadows = r.value("transparent_shadows", true) ? 1 : 0;
     sc.params.clamp_contribution = r.value("clamp", 0.f);
@@ -348,6 +366,13 @@ class Loader {
     scene_->params.uplift_hold_lambda = up.value("hold_lambda", 780.f);
     std::string method = up.value("method", std::string("jakob_hanika"));
     if (method != "jakob_hanika") fail("materials.uplift.method", "only 'jakob_hanika' is supported");
+    if (m.value("use_default_overrides", false)) {
+      std::string p = (fs::path(data_dir()) / "materials_default.json").string();
+      std::ifstream in(p);
+      if (!in) fail("materials.use_default_overrides", "cannot open " + p);
+      json d = json::parse(in);
+      for (const auto& o : d.value("overrides", json::array())) global_overrides_.push_back(o);
+    }
     for (const auto& o : m.value("overrides", json::array())) global_overrides_.push_back(o);
     const json defs = m.value("definitions", json::object());
     for (const auto& [name, def] : defs.items()) {

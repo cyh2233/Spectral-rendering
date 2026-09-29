@@ -122,7 +122,8 @@ struct CameraParams {
 enum DepthMode : int32_t { kDepthDistance = 0, kDepthZ = 1 };
 
 struct RenderParams {
-  int32_t max_depth = 8;  // maximum number of scattering events
+  int32_t max_depth = 8;  // maximum number of non-glass scattering events
+  int32_t max_glass_events = 16;  // glass (dielectric) events do not consume max_depth
   int32_t rr_depth = 3;   // start Russian roulette after this many bounces
   uint64_t seed = 0;
   int32_t transparent_shadows = 1;  // shadow rays pass through glass with Fresnel/absorption attenuation
