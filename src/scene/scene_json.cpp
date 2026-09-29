@@ -112,7 +112,8 @@ class Loader {
     parse_output(root_.value("output", json::object()));
     parse_camera(root_.value("camera", json::object()));
     parse_materials(root_.value("materials", json::object()));
-    for (const auto& [k, v] : root_.value("assets", json::object()).items()) asset_defs_[k] = v;
+    const json assets = root_.value("assets", json::object());
+    for (const auto& [k, v] : assets.items()) asset_defs_[k] = v;
     const json& insts = root_.value("instances", json::array());
     for (size_t i = 0; i < insts.size(); ++i) parse_instance(insts[i], "instances[" + std::to_string(i) + "]");
     const json& lights = root_.value("lights", json::array());
@@ -348,7 +349,8 @@ class Loader {
     std::string method = up.value("method", std::string("jakob_hanika"));
     if (method != "jakob_hanika") fail("materials.uplift.method", "only 'jakob_hanika' is supported");
     for (const auto& o : m.value("overrides", json::array())) global_overrides_.push_back(o);
-    for (const auto& [name, def] : m.value("definitions", json::object()).items()) {
+    const json defs = m.value("definitions", json::object());
+    for (const auto& [name, def] : defs.items()) {
       MaterialRecord rec;
       apply_material_fields(rec, def, "materials.definitions." + name);
       named_materials_[name] = scene_->add_material(rec, name);
@@ -373,6 +375,7 @@ class Loader {
       m.reflectance_spec = sc.add_band_spectrum(bands(o["reflectance"], where + ".reflectance", RgbMode::Reflectance));
     if (o.contains("metallic")) m.metallic = o["metallic"];
     if (o.contains("roughness")) m.roughness = o["roughness"];
+    if (o.contains("specular")) m.specular = o["specular"];
     if (o.contains("glass")) {
       GlassModel g = find_glass(o["glass"]);
       m.ior_spec = sc.add_band_spectrum(g.spectrum().to_bands(sc.grid));

@@ -57,6 +57,7 @@ struct MaterialRecord {
   float base_color[4] = {1, 1, 1, 1};  // linear RGBA factor (glTF)
   int32_t base_color_tex = -1;
   float metallic = 0.f, roughness = 0.5f;
+  float specular = 1.f;  // KHR_materials_specular factor (0 = pure Lambert diffuse)
   int32_t metal_rough_tex = -1;  // glTF: G = roughness, B = metallic
   int32_t normal_tex = -1;
   float normal_scale = 1.f;

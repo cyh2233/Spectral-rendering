@@ -169,6 +169,7 @@ GltfAsset load_gltf(const std::string& path, Scene& scene) {
     m.emissive_tex = get_texture(gm.emissiveTexture.index, true);
     m.emissive_strength = float(ext_number(gm.extensions, "KHR_materials_emissive_strength", "emissiveStrength", 1.0));
     m.ior = float(ext_number(gm.extensions, "KHR_materials_ior", "ior", 1.5));
+    m.specular = float(ext_number(gm.extensions, "KHR_materials_specular", "specularFactor", 1.0));
     m.alpha_mode = gm.alphaMode == "MASK" ? kAlphaMask : (gm.alphaMode == "BLEND" ? kAlphaBlend : kAlphaOpaque);
     m.alpha_cutoff = float(gm.alphaCutoff);
     m.double_sided = gm.doubleSided ? 1 : 0;

@@ -25,4 +25,3 @@ set_target_properties(test_sky_plugin PROPERTIES C_VISIBILITY_PRESET hidden)
 add_dependencies(spectral_tests test_sky_plugin)
 
 add_test(NAME spectral_tests COMMAND spectral_tests WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
-set_tests_properties(spectral_tests PROPERTIES ENVIRONMENT "SPECTRAL_CACHE_DIR=${CMAKE_BINARY_DIR}/cache")

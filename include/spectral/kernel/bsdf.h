@@ -54,7 +54,11 @@ struct BsdfSample {
 
 // ---------------------------------------------------------------- PBR (metallic-roughness)
 SPECTRAL_FN float pbr_alpha(const ShadingParams& sp) { return maxf(1e-3f, sp.roughness * sp.roughness); }
-SPECTRAL_FN float pbr_spec_prob(const ShadingParams& sp) { return 0.25f + 0.75f * clampf(sp.metallic, 0.f, 1.f); }
+SPECTRAL_FN float pbr_spec_prob(const ShadingParams& sp) {
+  float m = clampf(sp.metallic, 0.f, 1.f);
+  float base = sp.specular > 0.f ? 0.25f : 0.f;  // no specular lobe to sample for pure Lambert
+  return base + (1.f - base) * m;
+}
 
 // f(wo, wi) for local directions with wo.z > 0 (cosine NOT included).
 SPECTRAL_FN void pbr_eval(const ShadingParams& sp, Vec3 wo, Vec3 wi, Spectrum& f) {
@@ -68,7 +72,7 @@ SPECTRAL_FN void pbr_eval(const ShadingParams& sp, Vec3 wo, Vec3 wi, Spectrum& f
   float voh = maxf(0.f, dot(wo, h));
   float spec = ggx.D(h) * ggx.G(wo, wi) / (4.f * wo.z * wi.z);
   float f0d = sqr((sp.ior - 1.f) / (sp.ior + 1.f));
-  float fd = schlick(f0d, voh);
+  float fd = clampf(sp.specular, 0.f, 1.f) * schlick(f0d, voh);
   float met = clampf(sp.metallic, 0.f, 1.f);
   float diel_spec = (1.f - met) * fd * spec;
   float diff = (1.f - met) * (1.f - fd) * kInvPi;

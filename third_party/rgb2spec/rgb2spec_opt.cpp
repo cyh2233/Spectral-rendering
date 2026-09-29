@@ -521,4 +521,5 @@ int main(int argc, char **argv) {
     delete[] scale;
     fclose(f);
     printf(" done.\n");
+    return 0; /* spectral patch: required when compiled as a regular function (-Dmain=...) */
 }

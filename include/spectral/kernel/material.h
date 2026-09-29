@@ -10,6 +10,7 @@ struct ShadingParams {
   int32_t type = kMatPbr;
   Spectrum albedo;  // PBR: diffuse albedo / metallic F0
   float metallic = 0.f, roughness = 0.5f;
+  float specular = 1.f;
   float ior = 1.5f;
   const float* ior_bands = nullptr;    // per-band IOR (Fresnel) or null
   const float* trans_bands = nullptr;  // thin dielectric internal transmittance or null
@@ -46,6 +47,7 @@ SPECTRAL_FN void evaluate_material(const SceneView& s, const SurfaceInteraction&
   sp.trans_bands = m.transmittance_spec >= 0 ? s.spectra + m.transmittance_spec : nullptr;
   sp.metallic = m.metallic;
   sp.roughness = m.roughness;
+  sp.specular = m.specular;
 
   // Shading frame with optional normal map.
   Vec3 n = si.ns;

@@ -48,8 +48,8 @@ add_library(spectral::spectral ALIAS spectral)
 target_include_directories(spectral
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/third_party>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
+target_include_directories(spectral SYSTEM PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/third_party>)
 target_compile_definitions(spectral
   PUBLIC SPECTRAL_MAX_BANDS=${SPECTRAL_MAX_BANDS}
   PRIVATE
@@ -65,6 +65,9 @@ if(SPECTRAL_ENABLE_PRAGUE_SKY)
 endif()
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
   target_compile_options(spectral PRIVATE -Wall -Wextra -Wno-unused-parameter)
+  if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    target_compile_options(spectral PRIVATE -Wno-maybe-uninitialized)
+  endif()
 elseif(MSVC)
   target_compile_options(spectral PRIVATE /W3 /bigobj)
   target_compile_definitions(spectral PRIVATE _USE_MATH_DEFINES NOMINMAX)

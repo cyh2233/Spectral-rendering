@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <map>
 #include <mutex>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -17,10 +18,20 @@ namespace fs = std::filesystem;
 namespace spectral {
 
 void generate_uplift_lut(const std::string& output_path, int res) {
-  std::string r = std::to_string(res), out = output_path, gamut = "sRGB", prog = "rgb2spec_opt";
-  std::vector<char*> argv = {prog.data(), r.data(), out.data(), gamut.data()};
+  // Write to a temporary file and rename, so concurrent processes never see a partial table.
+  std::string tmp = output_path + ".tmp" + std::to_string(std::hash<std::string>{}(output_path) ^
+                                                          std::hash<const void*>{}(&tmp));
+  std::string r = std::to_string(res), gamut = "sRGB", prog = "rgb2spec_opt";
+  std::vector<char*> argv = {prog.data(), r.data(), tmp.data(), gamut.data()};
   std::fprintf(stderr, "[spectral] generating RGB->spectrum table (res %d) -> %s\n", res, output_path.c_str());
+  std::fflush(stdout);
   spectral_rgb2spec_main(int(argv.size()), argv.data());
+  std::error_code ec;
+  fs::rename(tmp, output_path, ec);
+  if (ec) {
+    fs::remove(tmp, ec);
+    if (!fs::exists(output_path)) throw std::runtime_error("Cannot write uplift table " + output_path);
+  }
 }
 
 std::shared_ptr<const UpliftLut> obtain_uplift_lut(const std::string& explicit_path, int res) {
