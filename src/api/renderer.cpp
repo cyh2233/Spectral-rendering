@@ -4,6 +4,7 @@
 
 #include "spectral/api.h"
 #include "spectral/io/image_io.h"
+#include "nlohmann/json.hpp"
 #include "spectral/scene/scene_json.h"
 #include "spectral/spectrum/colorimetry.h"
 
@@ -54,7 +55,19 @@ SpectralImage Renderer::render() {
   for (float& v : img.radiance) v *= inv;
   img.depth = std::move(film.depth);
   img.seg_id = std::move(film.seg_id);
-  img.metadata_json = sc.output.metadata_json;
+  // Metadata: user-provided fields plus what downstream stages (optics, sensor) need.
+  nlohmann::json meta = nlohmann::json::parse(sc.output.metadata_json, nullptr, false);
+  if (!meta.is_object()) meta = nlohmann::json::object();
+  const CameraParams& c = sc.camera;
+  nlohmann::json cam_to_world = nlohmann::json::array();
+  for (int r = 0; r < 3; ++r) cam_to_world.push_back({c.cam_to_world.m[r][0], c.cam_to_world.m[r][1],
+                                                      c.cam_to_world.m[r][2], c.cam_to_world.m[r][3]});
+  meta["camera"] = {{"model", "pinhole"}, {"width", c.width}, {"height", c.height},
+                    {"tan_half_fov_x", c.tan_half_fov_x}, {"tan_half_fov_y", c.tan_half_fov_y},
+                    {"cam_to_world", cam_to_world}, {"convention", "right-handed, +Y up, camera looks down -Z"}};
+  meta["spectral"] = {{"lambda_min_nm", sc.grid.lambda_min}, {"step_nm", sc.grid.step}, {"bands", sc.grid.n},
+                      {"units", "W/(m^2 sr nm)"}, {"spp", img.spp}, {"renderer", "libspectral " + version()}};
+  img.metadata_json = meta.dump();
   return img;
 }
 

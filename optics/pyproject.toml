@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "spectral-optics"
+version = "0.1.0"
+description = "Optics stage for the spectral renderer: lens/windshield PSFs, distortion, relative illumination"
+requires-python = ">=3.9"
+dependencies = ["numpy>=1.22", "scipy>=1.8"]
+
+[project.optional-dependencies]
+rayoptics = ["rayoptics>=0.9"]
+test = ["pytest>=7"]
+
+[project.scripts]
+spectral-optics = "spectral_optics.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["spectral_optics*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

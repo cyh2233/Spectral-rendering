@@ -8,3 +8,5 @@ __pycache__/
 /tests/data/tmp/
 .vscode/
 .idea/
+*.egg-info/
+.pytest_cache/
