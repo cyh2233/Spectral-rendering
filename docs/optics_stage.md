@@ -7,7 +7,7 @@ camera equation E = π T L / (4 N²).
 
 ```bash
 pip install -e optics[rayoptics,test]      # numpy, scipy (+ rayoptics for prescriptions)
-python -m pytest optics/tests               # 17 tests
+python -m pytest optics/tests               # 19 tests
 ```
 
 ## Optics package (`*.optics.npz`)

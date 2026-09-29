@@ -208,5 +208,6 @@ def windshield_package(ws: Windshield, focal_length_mm: float, f_number: float, 
             waves = w / (wl * 1e-6)
             p, px = psf_from_wavefront(waves, mask, wl, D, focal_length_mm, pad)
             psf[li, fi] = resample_psf(p, px, psf_pixel_um, psf_size)
-    meta = {"source": "windshield", "windshield": ws.__dict__, "reference_nm": reference_nm, "refocus": refocus}
+    meta = {"source": "windshield", "windshield": ws.__dict__, "reference_nm": reference_nm, "refocus": refocus,
+            "n_pupil": n_pupil, "pad": pad}
     return OpticsPackage(wls, fields, psf, psf_pixel_um, focal_length_mm, f_number, metadata=meta)

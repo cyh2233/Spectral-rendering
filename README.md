@@ -14,10 +14,10 @@
 ## Status
 | Component | State |
 |---|---|
-| CPU renderer, scene/glTF loading, EXR/NPZ | Implemented, 50 C++ tests passing |
+| CPU renderer, scene/glTF loading, EXR/NPZ | Implemented, 49 C++ test cases passing |
 | CUDA/OptiX backend | Implemented; compiled to PTX and syntax-checked against CUDA 12.9 / OptiX 9.1 headers here, **not yet run on a GPU** (see `docs/gpu_build.md`) |
 | Prague sky | Integrated and compiled; **not run against a dataset** (download blocked here) — gated test available |
-| Optics stage | Implemented, 17 Python tests passing (incl. renderer → optics end-to-end) |
+| Optics stage | Implemented, 19 Python tests passing (incl. renderer → optics end-to-end) |
 | Blender add-on | Implemented, tested headless with `bpy` 4.2 (export → render → segmentation/colour checks) |
 | CARLA converter | Implemented, offline tests only (no CARLA server here) |
 | Material spectra | `approx_*` files are **placeholders, not measurements** — replace with measured data |
