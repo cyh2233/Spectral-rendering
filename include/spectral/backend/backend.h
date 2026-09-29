@@ -30,6 +30,8 @@ class Backend {
   // Render samples [first_sample, first_sample + count) for all pixels, adding into film.
   // Writes AOVs when first_sample == 0.
   virtual void render_pass(const Scene& scene, FilmBuffers& film, int first_sample, int count) = 0;
+  // Makes the accumulated film available in `film` (device -> host copy for GPU backends).
+  virtual void finish(FilmBuffers& /*film*/) {}
   virtual void set_threads(int /*threads*/) {}
 };
 

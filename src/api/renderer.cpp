@@ -42,6 +42,7 @@ SpectralImage Renderer::render() {
     backend->render_pass(sc, film, s, n);
     if (progress_) progress_(film.spp_done, spp);
   }
+  backend->finish(film);
 
   SpectralImage img;
   img.width = film.width;
