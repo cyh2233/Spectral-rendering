@@ -12,6 +12,7 @@ option(SPECTRAL_ENABLE_CUDA "Build the CUDA/OptiX backend" OFF)
 option(SPECTRAL_ENABLE_PRAGUE_SKY "Build the Prague sky model" ON)
 option(SPECTRAL_BUILD_TESTS "Build unit/integration tests" ON)
 option(SPECTRAL_BUILD_SHARED "Build libspectral as a shared library" OFF)
+option(SPECTRAL_BUILD_PYTHON "Build the Python module (_spectral, package python/spectral_renderer)" OFF)
 set(SPECTRAL_MAX_BANDS 128 CACHE STRING "Maximum number of spectral bands per path")
 
 find_package(OpenMP)
@@ -83,6 +84,19 @@ target_link_libraries(spectral_render PRIVATE spectral)
 
 add_executable(spectral_uplift_lut apps/spectral_uplift_lut/main.cpp)
 target_link_libraries(spectral_uplift_lut PRIVATE spectral)
+
+if(SPECTRAL_BUILD_PYTHON)
+  find_package(Python3 COMPONENTS Interpreter Development.Module REQUIRED)
+  set(PYBIND11_FINDPYTHON ON)
+  add_subdirectory(third_party/pybind11)
+  pybind11_add_module(_spectral python/spectral_py.cpp)
+  target_link_libraries(_spectral PRIVATE spectral)
+  # The package directory is python/spectral_renderer; the extension is built next to a copy of it.
+  set_target_properties(_spectral PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/python/spectral_renderer)
+  add_custom_command(TARGET _spectral POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_SOURCE_DIR}/python/spectral_renderer/__init__.py
+            ${CMAKE_BINARY_DIR}/python/spectral_renderer/__init__.py)
+endif()
 
 if(SPECTRAL_BUILD_TESTS)
   enable_testing()
