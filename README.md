@@ -14,12 +14,14 @@
 ## Status
 | Component | State |
 |---|---|
-| CPU renderer, scene/glTF loading, EXR/NPZ | Implemented, 49 C++ test cases passing |
+| CPU renderer, scene/glTF loading, EXR/NPZ | Implemented, 55 C++ test cases passing |
+| Live session (incremental updates, preview) + Python module | Implemented, tested on CPU (moved/removed instances bit-identical to a fresh scene) |
 | CUDA/OptiX backend | Implemented; compiled to PTX and syntax-checked against CUDA 12.9 / OptiX 9.1 headers here, **not yet run on a GPU** (see `docs/gpu_build.md`) |
 | Prague sky | Integrated and compiled; **not run against a dataset** (download blocked here) — gated test available |
 | Optics stage | Implemented, 19 Python tests passing (incl. renderer → optics end-to-end) |
 | Blender add-on | Implemented, tested headless with `bpy` 4.2 (export → render → segmentation/colour checks) |
 | CARLA converter | Implemented, offline tests only (no CARLA server here) |
+| CARLA live viewer | Implemented, tested against a fake CARLA API with headless pygame; **not yet run against a CARLA server** |
 | Material spectra | `approx_*` files are **placeholders, not measurements** — replace with measured data |
 
 ## Build
@@ -57,6 +59,18 @@ r.load_scene_file("scene.json");
 spectral::SpectralImage img = r.render();       // img.radiance[(y*W + x)*bands + b]
 spectral::Renderer::write_outputs(img, r.scene().output);
 ```
+Live session from Python (`-DSPECTRAL_BUILD_PYTHON=ON`, module in `build/python`):
+```python
+from spectral_renderer import Session
+s = Session("examples/windshield/scene.json", backend="cuda")
+h = s.spawn({"primitive": "box", "size": [1, 1, 1], "material": {"base_color": [0.6, 0.05, 0.05]},
+             "transform": M, "seg_id": 14})
+s.set_transform(h, M2); s.reset(); s.render(16)
+rgb8 = s.preview("srgb")          # HxWx3 uint8, computed on the device
+cube = s.image()["radiance"]      # HxWxB float32
+```
+Online CARLA: `PYTHONPATH=build/python python tools/carla_live/spectral_live.py --config my_live.json`
+(see `docs/carla_live.md`).
 
 ## Documentation
 - `docs/architecture.md` — design, dense-band transport, code layout, tests
@@ -64,6 +78,7 @@ spectral::Renderer::write_outputs(img, r.scene().output);
 - `docs/windshield.md` — windshield modelling split between renderer and optics
 - `docs/optics_stage.md` — optics packages, vendor data for black-box lenses, applying optics
 - `docs/blender_export.md`, `docs/carla_export.md` — scene sources
+- `docs/carla_live.md` — online CARLA viewer (CARLA RGB | spectral render, live/quality modes)
 - `docs/sky_plugin.md` — Prague sky, plugin ABI
 - `docs/gpu_build.md` — CUDA/OptiX build and validation
 - `data/spectra/materials/README.md` — material spectra provenance
