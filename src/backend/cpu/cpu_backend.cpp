@@ -36,6 +36,11 @@ class CpuBackend final : public Backend {
     accel_.build(view_);
   }
 
+  void update(const Scene& scene) override {
+    view_ = scene.view();  // arrays may have been reallocated
+    accel_.update(view_, uint32_t(scene.meshes().size()));
+  }
+
   void render_pass(const Scene& scene, FilmBuffers& film, int first_sample, int count) override {
     (void)scene;
     const SceneView& s = view_;
@@ -84,6 +89,27 @@ class CpuBackend final : public Backend {
 }  // namespace
 
 std::unique_ptr<Backend> make_cpu_backend() { return std::make_unique<CpuBackend>(); }
+
+void Backend::preview(const FilmBuffers& film, const PreviewParams& params, std::vector<uint8_t>& rgb) {
+  const int W = film.width, H = film.height, n = film.n_bands;
+  rgb.resize(size_t(W) * H * 3);
+#if defined(_OPENMP)
+#pragma omp parallel for schedule(static)
+#endif
+  for (int y = 0; y < H; ++y)
+    for (int x = 0; x < W; ++x) {
+      size_t p = size_t(y) * W + x;
+      preview_pixel(film.radiance_sum.data() + p * n, n, film.depth[p], film.seg_id[p], params, rgb.data() + p * 3);
+    }
+}
+
+void Backend::luminance(const FilmBuffers& film, const float* cmf, float inv_spp, int stride, std::vector<float>& out) {
+  const int W = film.width, H = film.height, n = film.n_bands;
+  out.clear();
+  for (int y = stride / 2; y < H; y += stride)
+    for (int x = stride / 2; x < W; x += stride)
+      out.push_back(preview_luminance(film.radiance_sum.data() + (size_t(y) * W + x) * n, n, cmf, inv_spp));
+}
 
 #if !defined(SPECTRAL_HAS_CUDA)
 bool cuda_backend_available() { return false; }

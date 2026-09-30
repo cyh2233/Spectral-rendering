@@ -112,9 +112,11 @@ bool regex_match_name(const std::string& pattern, const std::string& name) {
   return std::regex_search(name, it->second);
 }
 
-class Loader {
+}  // namespace
+
+class SceneBuilder::Impl {
  public:
-  Loader(const json& root, std::string base) : root_(root), base_(std::move(base)) {}
+  Impl(json root, std::string base) : root_(std::move(root)), base_(std::move(base)) {}
 
   std::shared_ptr<Scene> load() {
     scene_ = std::make_shared<Scene>();
@@ -139,6 +141,64 @@ class Loader {
     sc.finalize();
     return scene_;
   }
+
+  // ---------------------------------------------------------------- live-session API
+  std::vector<InstancePart> add_instance(const json& o) {
+    auto parts = parse_instance(o, "instance");
+    if (needs_lut()) ensure_lut();
+    return parts;
+  }
+  void add_asset(const std::string& key, const json& def) { asset_defs_[key] = def; }
+  std::vector<float> spectrum(const json& spec, bool illuminant) {
+    return bands(spec, "spectrum", illuminant ? RgbMode::Illuminant : RgbMode::Reflectance);
+  }
+  // Point / spot / directional light record; the emission spectrum is pooled once per distinct spec.
+  LightRecord make_light(const json& o) {
+    std::string type = o.value("type", std::string());
+    LightRecord l;
+    l.scale = o.value("scale", 1.f);
+    if (type == "point" || type == "spot") {
+      l.type = type == "point" ? kLightPoint : kLightSpot;
+      l.position = vec3(o.at("position"), "light.position");
+      if (type == "spot") {
+        l.direction = normalize(vec3(o.at("direction"), "light.direction"));
+        float inner = o.value("cone_inner_deg", 20.f), outer = o.value("cone_outer_deg", 30.f);
+        if (!(outer >= inner)) fail("light", "cone_outer_deg must be >= cone_inner_deg");
+        l.cos_inner = std::cos(inner * kPi / 180.f);
+        l.cos_outer = std::cos(outer * kPi / 180.f);
+      }
+    } else if (type == "directional") {
+      l.type = kLightDirectional;
+      l.direction = normalize(vec3(o.at("direction"), "light.direction"));
+    } else {
+      fail("light.type", "dynamic lights must be point | spot | directional");
+    }
+    std::string key = o.at("emission").dump();
+    auto it = spectrum_cache_.find(key);
+    if (it == spectrum_cache_.end())
+      it = spectrum_cache_.emplace(key, scene_->add_band_spectrum(bands(o["emission"], "light.emission",
+                                                                        RgbMode::Illuminant))).first;
+    l.spectrum = it->second;
+    return l;
+  }
+  void set_sun(Vec3 dir) {
+    if (!sky_) throw std::runtime_error("set_sun: the scene has no sky light");
+    sky_params_.sun_direction = normalize(dir);
+    sky_->configure(sky_params_);
+    if (!sky_tab_.cache_path.empty()) {
+      // Quantise the direction (~0.3 deg) so small sun motions reuse cached tables.
+      json key = sky_json_;
+      key["_grid"] = {scene_->grid.lambda_min, scene_->grid.step, scene_->grid.n, sky_tab_.width, sky_tab_.height};
+      key["_sun"] = {std::lround(sky_params_.sun_direction.x * 200), std::lround(sky_params_.sun_direction.y * 200),
+                     std::lround(sky_params_.sun_direction.z * 200)};
+      sky_tab_.cache_path = (fs::path(cache_dir()) / ("sky_" + std::to_string(std::hash<std::string>{}(key.dump())) +
+                                                     ".bin")).string();
+    }
+    add_sky_to_scene(*sky_, sky_params_, sky_tab_, *scene_);
+  }
+  bool has_sky() const { return bool(sky_); }
+  void set_camera(const json& c) { parse_camera(c); }
+  Scene& scene() { return *scene_; }
 
  private:
   // ---------------------------------------------------------------- render / output / camera
@@ -499,8 +559,9 @@ class Loader {
     return assets_.emplace(key, std::move(a)).first->second;
   }
 
-  void parse_instance(const json& o, const std::string& where) {
+  std::vector<InstancePart> parse_instance(const json& o, const std::string& where) {
     Scene& sc = *scene_;
+    std::vector<InstancePart> created;
     Affine xf = parse_transform(o, where);
     uint32_t seg = o.value("seg_id", 0u);
     if (o.contains("asset")) {
@@ -531,9 +592,10 @@ class Loader {
           if (regex_match_name(pat, mname)) s = id.get<uint32_t>();
         for (const auto& [pat, id] : seg_node.items())
           if (regex_match_name(pat, part.node_name)) s = id.get<uint32_t>();
-        sc.add_instance(part.mesh, compose(xf, part.node_to_asset), mat, s);
+        uint32_t id = sc.add_instance(part.mesh, compose(xf, part.node_to_asset), mat, s);
+        created.push_back({id, part.node_to_asset});
       }
-      return;
+      return created;
     }
     if (o.contains("primitive")) {
       std::string p = o["primitive"];
@@ -557,8 +619,9 @@ class Loader {
       int32_t mat = o.contains("material") ? resolve_material(o["material"], where + ".material") : default_material();
       md.material = mat;
       uint32_t mesh = sc.add_mesh(md);
-      sc.add_instance(mesh, xf, mat, seg);
-      return;
+      uint32_t id = sc.add_instance(mesh, xf, mat, seg);
+      created.push_back({id, Affine::identity()});
+      return created;
     }
     fail(where, "instance needs 'asset' or 'primitive'");
   }
@@ -649,6 +712,7 @@ class Loader {
       tab.height = 256;
     }
     sky->configure(p);
+    sky_json_ = o;
     if (model != "simple" && o.value("cache", true)) {
       json key = o;
       key["_grid"] = {sc.grid.lambda_min, sc.grid.step, sc.grid.n, tab.width, tab.height};
@@ -656,6 +720,9 @@ class Loader {
       tab.cache_path = (fs::path(cache_dir()) / ("sky_" + std::to_string(h) + ".bin")).string();
     }
     add_sky_to_scene(*sky, p, tab, sc);
+    sky_ = std::move(sky);
+    sky_params_ = p;
+    sky_tab_ = tab;
   }
 
   void parse_envmap(const json& o, const std::string& where) {
@@ -690,8 +757,13 @@ class Loader {
     sc.set_environment(W, H, std::move(table), o.value("scale", 1.f), o.value("rotation_deg", 0.f) * kPi / 180.f);
   }
 
-  const json& root_;
+  json root_;
   std::string base_;
+  std::unique_ptr<SkyModel> sky_;
+  SkyParams sky_params_;
+  SkyTabulation sky_tab_;
+  json sky_json_;
+  std::map<std::string, int32_t> spectrum_cache_;
   std::shared_ptr<Scene> scene_;
   std::vector<std::string> library_dirs_;
   std::map<std::string, std::string> library_index_;
@@ -705,11 +777,38 @@ class Loader {
   int32_t default_material_ = -1;
 };
 
-}  // namespace
+
+SceneBuilder::SceneBuilder(json root, std::string base_dir)
+    : impl_(std::make_unique<Impl>(std::move(root), std::move(base_dir))) {}
+SceneBuilder::~SceneBuilder() = default;
+std::shared_ptr<Scene> SceneBuilder::build() { return impl_->load(); }
+std::vector<InstancePart> SceneBuilder::add_instance(const json& inst) { return impl_->add_instance(inst); }
+void SceneBuilder::add_asset(const std::string& key, const std::string& path) {
+  impl_->add_asset(key, json{{"path", path}});
+}
+std::vector<float> SceneBuilder::spectrum(const json& spec, bool illuminant) { return impl_->spectrum(spec, illuminant); }
+LightRecord SceneBuilder::make_light(const json& light) { return impl_->make_light(light); }
+void SceneBuilder::set_sun(Vec3 dir) { impl_->set_sun(dir); }
+bool SceneBuilder::has_sky() const { return impl_->has_sky(); }
+void SceneBuilder::set_camera(const json& cam) { impl_->set_camera(cam); }
+
+Affine parse_instance_transform(const json& o) { return parse_transform(o, "instance"); }
+
+std::unique_ptr<SceneBuilder> make_scene_builder_from_file(const std::string& path) {
+  std::ifstream in(path);
+  if (!in) throw std::runtime_error("Cannot open scene file " + path);
+  json j;
+  try {
+    j = json::parse(in, nullptr, true, true);
+  } catch (const json::parse_error& e) {
+    throw std::runtime_error("Invalid JSON in " + path + ": " + e.what());
+  }
+  return std::make_unique<SceneBuilder>(std::move(j), fs::absolute(fs::path(path)).parent_path().string());
+}
 
 std::shared_ptr<Scene> load_scene_json(const json& j, const std::string& base_dir) {
-  Loader l(j, base_dir);
-  return l.load();
+  SceneBuilder b(j, base_dir);
+  return b.build();
 }
 
 std::shared_ptr<Scene> load_scene_json_file(const std::string& path) {

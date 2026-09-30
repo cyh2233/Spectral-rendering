@@ -5,6 +5,7 @@
 
 #include "nlohmann/json.hpp"
 #include "spectral/scene/scene.h"
+#include "spectral/scene/scene_builder.h"
 
 namespace spectral {
 

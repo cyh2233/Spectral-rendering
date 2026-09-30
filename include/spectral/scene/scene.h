@@ -72,12 +72,21 @@ class Scene {
   int32_t add_material(const MaterialRecord& m, const std::string& name);
   uint32_t add_mesh(const MeshData& mesh);
   uint32_t add_instance(uint32_t mesh, const Affine& to_world, int32_t material_override = -1, uint32_t seg_id = 0);
+  // Dynamic updates (live sessions). Call finalize() afterwards.
+  void set_instance_transform(uint32_t instance, const Affine& to_world);
+  void set_instance_hidden(uint32_t instance, bool hidden);
+  void set_instance_seg_id(uint32_t instance, uint32_t seg_id);
 
   // ---- lights
   int32_t add_light(const LightRecord& l);
+  // Lights replaced wholesale every frame (e.g. vehicle headlights). Spectra must already be in the pool.
+  void set_dynamic_lights(std::vector<LightRecord> lights);
+  // Overwrites the band values of an existing pooled spectrum (same size).
+  void overwrite_band_spectrum(int32_t offset, const std::vector<float>& bands);
   // Environment radiance table: height*width*n_bands values (lat-long, see EnvView).
   void set_environment(int width, int height, std::vector<float> radiance, float scale = 1.f, float rotation = 0.f);
   // Sun disk: direction towards the sun, half-angle in radians, disk radiance spectrum.
+  // Replaces an existing sun (its spectrum slot is reused).
   void set_sun(Vec3 direction_to_sun, float half_angle_rad, const std::vector<float>& radiance_bands,
                float scale = 1.f);
 
@@ -112,6 +121,11 @@ class Scene {
   const EnvView& env_params() const { return env_; }
   int32_t env_light_index() const { return env_light_; }
   int32_t sun_light_index() const { return sun_light_; }
+  bool has_sun() const {
+    for (const auto& l : user_lights_)
+      if (l.type == kLightSun) return true;
+    return false;
+  }
 
  private:
   std::vector<Vec3> positions_, normals_;
@@ -124,7 +138,9 @@ class Scene {
   std::vector<TextureData> textures_;
   std::vector<TextureView> texture_views_;
   std::vector<float> spectra_;
-  std::vector<LightRecord> lights_;
+  std::vector<LightRecord> user_lights_;     // added via add_light / set_sun
+  std::vector<LightRecord> dynamic_lights_;  // replaced by set_dynamic_lights
+  std::vector<LightRecord> lights_;          // finalized: user + dynamic + triangle + env
   std::vector<AliasEntry> light_alias_;
   std::vector<float> env_data_;
   EnvDistData env_dist_;

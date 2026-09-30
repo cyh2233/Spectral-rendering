@@ -153,10 +153,39 @@ uint32_t Scene::add_instance(uint32_t mesh, const Affine& to_world, int32_t mate
 }
 
 int32_t Scene::add_light(const LightRecord& l) {
-  lights_.push_back(l);
+  user_lights_.push_back(l);
   finalized_ = false;
-  return int32_t(lights_.size() - 1);
+  return int32_t(user_lights_.size() - 1);
 }
+
+void Scene::set_dynamic_lights(std::vector<LightRecord> lights) {
+  for (const auto& l : lights)
+    if (l.spectrum < 0 || size_t(l.spectrum) + grid.n > spectra_.size())
+      throw std::runtime_error("set_dynamic_lights: light spectrum not in the pool");
+  dynamic_lights_ = std::move(lights);
+  finalized_ = false;
+}
+
+void Scene::overwrite_band_spectrum(int32_t off, const std::vector<float>& b) {
+  if (off < 0 || int(b.size()) != grid.n || size_t(off) + b.size() > spectra_.size())
+    throw std::runtime_error("overwrite_band_spectrum: bad offset or size");
+  std::copy(b.begin(), b.end(), spectra_.begin() + off);
+  finalized_ = false;
+}
+
+void Scene::set_instance_transform(uint32_t i, const Affine& to_world) {
+  InstanceRecord& r = instances_.at(i);
+  r.to_world = to_world;
+  r.to_local = inverse(to_world);
+  finalized_ = false;
+}
+
+void Scene::set_instance_hidden(uint32_t i, bool hidden) {
+  instances_.at(i).hidden = hidden ? 1u : 0u;
+  finalized_ = false;
+}
+
+void Scene::set_instance_seg_id(uint32_t i, uint32_t seg_id) { instances_.at(i).seg_id = seg_id; }
 
 void Scene::set_environment(int w, int h, std::vector<float> data, float scale, float rotation) {
   if (w <= 0 || h <= 0 || data.size() != size_t(w) * h * grid.n) throw std::runtime_error("Invalid environment table");
@@ -207,6 +236,14 @@ void Scene::set_environment(int w, int h, std::vector<float> data, float scale, 
 }
 
 void Scene::set_sun(Vec3 dir, float half_angle, const std::vector<float>& radiance, float scale) {
+  for (LightRecord& l : user_lights_) {
+    if (l.type != kLightSun) continue;
+    l.direction = normalize(dir);
+    l.cos_max = std::cos(half_angle);
+    l.scale = scale;
+    overwrite_band_spectrum(l.spectrum, radiance);
+    return;
+  }
   LightRecord l;
   l.type = kLightSun;
   l.direction = normalize(dir);
@@ -227,10 +264,9 @@ void Scene::finalize() {
     v.wrap = textures_[i].wrap;
     v.data = textures_[i].rgba.data();
   }
-  // Remove previously generated triangle/env lights (finalize may be called repeatedly).
-  lights_.erase(std::remove_if(lights_.begin(), lights_.end(),
-                               [](const LightRecord& l) { return l.type == kLightTriangle || l.type == kLightEnv; }),
-                lights_.end());
+  // Rebuild the light list: user lights, dynamic lights, then generated triangle / env lights.
+  lights_ = user_lights_;
+  lights_.insert(lights_.end(), dynamic_lights_.begin(), dynamic_lights_.end());
   for (auto& inst : instances_) inst.light_offset = -1;
 
   params.has_glass = 0;
@@ -240,7 +276,7 @@ void Scene::finalize() {
   // Emissive triangles.
   for (uint32_t ii = 0; ii < instances_.size(); ++ii) {
     InstanceRecord& inst = instances_[ii];
-    if (inst.material < 0 || !material_emits(materials_[inst.material])) continue;
+    if (inst.hidden || inst.material < 0 || !material_emits(materials_[inst.material])) continue;
     const MeshRecord& m = meshes_[inst.mesh];
     inst.light_offset = int32_t(lights_.size());
     for (uint32_t t = 0; t < m.tri_count; ++t) {

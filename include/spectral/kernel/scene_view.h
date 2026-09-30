@@ -30,6 +30,7 @@ struct InstanceRecord {
   int32_t material = -1;      // resolved material (per-instance overrides applied on the host)
   uint32_t seg_id = 0;        // semantic segmentation id
   int32_t light_offset = -1;  // index of the first triangle light of this instance, or -1
+  uint32_t hidden = 0;        // 1: excluded from traversal and light sampling (removed/pooled)
 };
 
 enum TextureWrap : int32_t { kWrapRepeat = 0, kWrapClamp = 1, kWrapMirror = 2 };

@@ -30,8 +30,13 @@ class Bvh {
 // Acceleration structure for a whole scene: one BLAS per mesh, TLAS over instances.
 struct CpuAccel {
   std::vector<Bvh> blas;  // indexed by mesh
+  std::vector<AABB> mesh_bounds;
+  std::vector<char> blas_built;
   Bvh tlas;               // over instances
   void build(const SceneView& s);
+  // Builds BLASes for meshes that have none yet and rebuilds the TLAS (after transform /
+  // visibility changes or newly added meshes). Existing BLASes are kept.
+  void update(const SceneView& s, uint32_t n_meshes);
 };
 
 struct CpuIntersector {

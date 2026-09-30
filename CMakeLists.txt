@@ -22,6 +22,7 @@ add_subdirectory(third_party)
 
 set(SPECTRAL_SOURCES
   src/api/renderer.cpp
+  src/api/session.cpp
   src/backend/cpu/bvh.cpp
   src/backend/cpu/cpu_backend.cpp
   src/io/csv_spectrum.cpp

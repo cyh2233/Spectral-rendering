@@ -111,16 +111,24 @@ void Bvh::subdivide(uint32_t ni, const std::vector<AABB>& bounds, const std::vec
 }
 
 void CpuAccel::build(const SceneView& s) {
-  // Collect meshes referenced by instances.
+  blas.clear();
+  mesh_bounds.clear();
+  blas_built.clear();
   uint32_t n_meshes = 0;
   for (uint32_t i = 0; i < s.n_instances; ++i) n_meshes = std::max(n_meshes, s.instances[i].mesh + 1);
-  blas.assign(n_meshes, Bvh());
-  std::vector<AABB> mesh_bounds(n_meshes);
-  std::vector<char> built(n_meshes, 0);
+  update(s, n_meshes);
+}
+
+void CpuAccel::update(const SceneView& s, uint32_t n_meshes) {
+  if (blas.size() < n_meshes) {
+    blas.resize(n_meshes);
+    mesh_bounds.resize(n_meshes);
+    blas_built.resize(n_meshes, 0);
+  }
   for (uint32_t i = 0; i < s.n_instances; ++i) {
     uint32_t mi = s.instances[i].mesh;
-    if (built[mi]) continue;
-    built[mi] = 1;
+    if (blas_built[mi]) continue;
+    blas_built[mi] = 1;
     const MeshRecord& m = s.meshes[mi];
     std::vector<AABB> tri(m.tri_count);
     for (uint32_t t = 0; t < m.tri_count; ++t) {
@@ -134,8 +142,8 @@ void CpuAccel::build(const SceneView& s) {
   std::vector<AABB> inst_bounds(s.n_instances);
   for (uint32_t i = 0; i < s.n_instances; ++i) {
     const AABB& b = mesh_bounds[s.instances[i].mesh];
-    if (b.valid()) inst_bounds[i] = transform_aabb(s.instances[i].to_world, b);
-    else inst_bounds[i].expand(Vec3(kInf * 0.5f));  // empty mesh far away
+    if (b.valid() && !s.instances[i].hidden) inst_bounds[i] = transform_aabb(s.instances[i].to_world, b);
+    else inst_bounds[i].expand(Vec3(kInf * 0.5f));  // empty or hidden: parked far away
   }
   tlas.build(inst_bounds);
 }
@@ -236,6 +244,7 @@ bool CpuIntersector::traverse(const Ray& ray, float tmax, Hit* hit) const {
     for (uint32_t k = 0; k < node.count; ++k) {
       uint32_t ii = tp[node.left_or_first + k];
       const InstanceRecord& inst = s.instances[ii];
+      if (inst.hidden) continue;
       const Bvh& blas = accel->blas[inst.mesh];
       if (blas.empty()) continue;
       const MeshRecord& mesh = s.meshes[inst.mesh];

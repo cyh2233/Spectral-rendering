@@ -225,13 +225,13 @@ void add_sky_to_scene(const SkyModel& sky, const SkyParams& params, const SkyTab
     }
   }
   scene.set_environment(W, H, std::move(table), tab.scale, tab.rotation);
-  if (params.sun_direction.y > -0.05f) {
-    std::vector<float> sun(g.n);
+  std::vector<float> sun(g.n, 0.f);
+  if (params.sun_direction.y > -0.05f)
     for (int b = 0; b < g.n; ++b) sun[b] = float(sky.sun_radiance(g.center(b)));
-    double s = 0;
-    for (float v : sun) s += v;
-    if (s > 0) scene.set_sun(params.sun_direction, float(sky.sun_half_angle()), sun, tab.scale);
-  }
+  double s = 0;
+  for (float v : sun) s += v;
+  // A sun that set during a live session is kept with zero radiance (its slot is reused later).
+  if (s > 0 || scene.has_sun()) scene.set_sun(params.sun_direction, float(sky.sun_half_angle()), sun, tab.scale);
 }
 
 }  // namespace spectral

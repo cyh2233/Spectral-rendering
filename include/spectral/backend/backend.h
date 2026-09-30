@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 
+#include "spectral/kernel/preview.h"
 #include "spectral/scene/scene.h"
 
 namespace spectral {
@@ -32,6 +33,15 @@ class Backend {
   virtual void render_pass(const Scene& scene, FilmBuffers& film, int first_sample, int count) = 0;
   // Makes the accumulated film available in `film` (device -> host copy for GPU backends).
   virtual void finish(FilmBuffers& /*film*/) {}
+  // Re-synchronises with a scene that changed after prepare() (instances moved/added/hidden,
+  // materials, lights, environment, camera). The scene must be finalized.
+  virtual void update(const Scene& scene) = 0;
+  // 8-bit RGB preview of the accumulated film (row-major, top row first). GPU backends compute it on
+  // the device so only width*height*3 bytes are transferred.
+  virtual void preview(const FilmBuffers& film, const PreviewParams& params, std::vector<uint8_t>& rgb);
+  // Luminance of every `stride`-th pixel in x and y (auto exposure).
+  virtual void luminance(const FilmBuffers& film, const float* cmf, float inv_spp, int stride,
+                         std::vector<float>& out);
   virtual void set_threads(int /*threads*/) {}
 };
 
