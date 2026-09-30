@@ -19,6 +19,14 @@ CARLA server (UE4, GPU) ──TCP 2000──► spectral_live.py
                                        └─ Viewer (pygame)  CARLA RGB | spectral preview + HUD
 ```
 
+**Scripted path**: sections 1–4 below are automated by the repo scripts.
+```bash
+scripts/setup.sh --with-carla 0.9.15    # venv, build (CUDA + Python module), tests, env.sh
+scripts/install_carla.sh 0.9.15         # CARLA release + maps + client wheel, CARLA_ROOT in env.local.sh
+source env.sh && scripts/run_carla_live.sh [--offscreen] [--config my_live.json]
+```
+The manual steps follow.
+
 ## 1. Install CARLA (Ubuntu 22.04)
 
 1. Download the packaged release from GitHub (`CARLA_0.9.15.tar.gz` or `CARLA_0.9.16.tar.gz`). For the other

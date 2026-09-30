@@ -65,6 +65,7 @@ else
   echo "   extracting $TAR"
   tar -xzf "$TAR" -C "$DIR"
   [ -x "$DIR/CarlaUE4.sh" ] || { echo "CarlaUE4.sh not found after extraction (wrong archive?)"; exit 1; }
+  echo "   extracted; the archive can be deleted: rm $TAR"
 fi
 
 if [ $MAPS = 1 ]; then
@@ -79,7 +80,7 @@ if [ $MAPS = 1 ]; then
       download "$BASE_URL/AdditionalMaps_$VERSION.tar.gz" "$MAPS_TAR" || {
         echo "additional maps download failed (optional): re-run with --maps-tar FILE or --no-maps"; exit 1; }
     else
-      cp -n "$MAPS_TAR" "$DIR/Import/"
+      [ -f "$DIR/Import/$(basename "$MAPS_TAR")" ] || cp "$MAPS_TAR" "$DIR/Import/"
     fi
     (cd "$DIR" && ./ImportAssets.sh)
     touch "$MARK"

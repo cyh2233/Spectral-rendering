@@ -7,6 +7,7 @@ from spectral_optics.lens_rayoptics import lens_package  # noqa: E402
 
 
 def singlet():
+    import rayoptics.elem.elements  # noqa: F401  (avoids a circular import in rayoptics 0.9.5)
     from rayoptics.optical.opticalmodel import OpticalModel
     from rayoptics.raytr.opticalspec import FieldSpec, PupilSpec, WvlSpec
     opm = OpticalModel()

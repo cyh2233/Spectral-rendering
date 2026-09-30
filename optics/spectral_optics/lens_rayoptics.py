@@ -19,6 +19,9 @@ from .pupil import psf_from_wavefront, resample_psf
 
 
 def _ro():
+    # elements first: importing opticalmodel directly hits a circular import in rayoptics 0.9.5 (the newest
+    # release for Python 3.10); rayoptics.environment would also work there but loads the Qt GUI in 0.9.8.
+    import rayoptics.elem.elements  # noqa: F401
     from rayoptics.optical.opticalmodel import OpticalModel  # noqa: F401  (import check)
     from rayoptics.raytr import analyses, trace
     from rayoptics.raytr.opticalspec import FieldSpec, WvlSpec
