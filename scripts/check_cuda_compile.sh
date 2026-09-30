@@ -19,6 +19,10 @@ clang++ -x cuda --cuda-path="$CUDA" --cuda-gpu-arch=sm_86 --cuda-device-only -S 
   -Wno-unknown-cuda-version -I "$ROOT/include" -I "$OPTIX_INC" -DSPECTRAL_MAX_BANDS=128 \
   "$ROOT/src/backend/cuda/programs/device_programs.cu" -o "$WORK/device_programs.ptx"
 grep -c "\.entry" "$WORK/device_programs.ptx" | xargs echo "PTX entry points:"
+clang++ -x cuda --cuda-path="$CUDA" --cuda-gpu-arch=sm_86 --cuda-device-only -S -O3 -std=c++17 \
+  -Wno-unknown-cuda-version -I "$ROOT/include" -DSPECTRAL_MAX_BANDS=128 \
+  "$ROOT/src/backend/cuda/preview_kernels.cu" -o "$WORK/preview_kernels.ptx"
+grep -c "\.entry" "$WORK/preview_kernels.ptx" | xargs echo "preview kernels:"
 g++ -std=c++20 -fsyntax-only -Wall -Wextra -Wno-unused-parameter -I "$ROOT/include" -I "$ROOT/third_party" \
   -I "$CUDA/include" -I "$OPTIX_INC" -DSPECTRAL_HAS_CUDA=1 -DSPECTRAL_MAX_BANDS=128 \
   "$ROOT/src/backend/cuda/cuda_backend.cpp"

@@ -20,6 +20,12 @@
 #include "launch_params.h"
 #include "spectral/backend/backend.h"
 
+// Preview launchers (preview_kernels.cu).
+cudaError_t spectral_cuda_preview(const float* film, const float* depth, const uint32_t* seg, int w, int h, int n,
+                                  const spectral::PreviewParams& p, uint8_t* out, cudaStream_t stream);
+cudaError_t spectral_cuda_luminance(const float* film, int w, int h, int n, const float* cmf, float inv_spp, int stride,
+                                    float* out, int* out_w, int* out_h, cudaStream_t stream);
+
 // Generated at build time from programs/device_programs.cu (PTX), see cmake/CudaBackend.cmake.
 extern "C" const unsigned char spectral_optix_ptx[];
 extern "C" const unsigned long long spectral_optix_ptx_size;
@@ -125,8 +131,54 @@ class CudaBackend final : public Backend {
   std::string name() const override { return "cuda"; }
 
   void prepare(const Scene& scene) override {
+    gas_.clear();
+    gas_handles_.clear();
+    for (cudaTextureObject_t t : textures_) cudaDestroyTextureObject(t);
+    for (cudaArray_t a : arrays_) cudaFreeArray(a);
+    textures_.clear();
+    arrays_.clear();
+    tex_views_host_.clear();
+    tex_views_.release();
+    lut_data_.release();
+    uploaded_positions_ = size_t(-1);
+    uploaded_env_version_ = uint64_t(-1);
     upload_scene(scene);
     build_accels(scene);
+  }
+
+  // Incremental: geometry arrays only when they grew, GAS only for new meshes, textures only new
+  // ones, environment only when its version changed; instance/material/light buffers and the IAS
+  // are refreshed every time (cheap).
+  void update(const Scene& scene) override {
+    upload_scene(scene);
+    build_accels(scene);
+  }
+
+  void preview(const FilmBuffers& film, const PreviewParams& params, std::vector<uint8_t>& rgb) override {
+    if (!film_radiance_.ptr) return Backend::preview(film, params, rgb);
+    upload_cmf(params.cmf, film.n_bands);
+    PreviewParams p = params;
+    p.cmf = cmf_.as<float>();
+    const size_t n = size_t(film.width) * film.height * 3;
+    preview_buf_.alloc(n);
+    CUDA_CHECK(spectral_cuda_preview(film_radiance_.as<float>(), film_depth_.as<float>(), film_seg_.as<uint32_t>(),
+                                     film.width, film.height, film.n_bands, p, preview_buf_.as<uint8_t>(), stream_));
+    rgb.resize(n);
+    CUDA_CHECK(cudaMemcpyAsync(rgb.data(), preview_buf_.ptr, n, cudaMemcpyDeviceToHost, stream_));
+    CUDA_CHECK(cudaStreamSynchronize(stream_));
+  }
+
+  void luminance(const FilmBuffers& film, const float* cmf, float inv_spp, int stride,
+                 std::vector<float>& out) override {
+    if (!film_radiance_.ptr) return Backend::luminance(film, cmf, inv_spp, stride, out);
+    upload_cmf(cmf, film.n_bands);
+    lum_buf_.alloc(size_t(film.width / stride + 1) * (film.height / stride + 1) * sizeof(float));
+    int ow = 0, oh = 0;
+    CUDA_CHECK(spectral_cuda_luminance(film_radiance_.as<float>(), film.width, film.height, film.n_bands,
+                                       cmf_.as<float>(), inv_spp, stride, lum_buf_.as<float>(), &ow, &oh, stream_));
+    out.resize(size_t(ow) * oh);
+    CUDA_CHECK(cudaMemcpyAsync(out.data(), lum_buf_.ptr, out.size() * sizeof(float), cudaMemcpyDeviceToHost, stream_));
+    CUDA_CHECK(cudaStreamSynchronize(stream_));
   }
 
   void render_pass(const Scene& scene, FilmBuffers& film, int first_sample, int count) override {
@@ -241,25 +293,40 @@ class CudaBackend final : public Backend {
     sbt_.hitgroupRecordCount = 1;
   }
 
+  void upload_cmf(const float* cmf, int n_bands) {
+    std::vector<float> host(cmf, cmf + 3 * n_bands);
+    if (host != cmf_host_) {
+      cmf_.upload(host);
+      cmf_host_ = std::move(host);
+    }
+  }
+
   void upload_scene(const Scene& scene) {
     SceneView v = scene.view();
-    positions_.upload(scene.positions());
-    normals_.upload(scene.normals());
-    uvs_.upload(scene.uvs());
-    indices_.upload(scene.indices());
-    meshes_.upload(scene.meshes());
+    if (uploaded_positions_ != scene.positions().size() || uploaded_meshes_ != scene.meshes().size()) {
+      positions_.upload(scene.positions());
+      normals_.upload(scene.normals());
+      uvs_.upload(scene.uvs());
+      indices_.upload(scene.indices());
+      meshes_.upload(scene.meshes());
+      uploaded_positions_ = scene.positions().size();
+      uploaded_meshes_ = scene.meshes().size();
+    }
     instances_.upload(scene.instances());
     materials_.upload(scene.materials());
     spectra_.upload(scene.spectra());
     d65n_.upload(scene.d65n_bands());
     lights_.upload(scene.lights());
     alias_.upload(scene.light_alias());
-    env_data_.upload(scene.env_data());
-    env_func_.upload(scene.env_dist().func);
-    env_cond_.upload(scene.env_dist().cond_cdf);
-    env_row_.upload(scene.env_dist().row_int);
-    env_marg_.upload(scene.env_dist().marg_cdf);
-    if (scene.uplift) {
+    if (uploaded_env_version_ != scene.env_version()) {
+      env_data_.upload(scene.env_data());
+      env_func_.upload(scene.env_dist().func);
+      env_cond_.upload(scene.env_dist().cond_cdf);
+      env_row_.upload(scene.env_dist().row_int);
+      env_marg_.upload(scene.env_dist().marg_cdf);
+      uploaded_env_version_ = scene.env_version();
+    }
+    if (scene.uplift && !lut_data_.ptr) {
       lut_scale_.upload(scene.uplift->scale);
       lut_data_.upload(scene.uplift->data);
     }
@@ -288,12 +355,11 @@ class CudaBackend final : public Backend {
   }
 
   void upload_textures(const Scene& scene) {
-    for (cudaTextureObject_t t : textures_) cudaDestroyTextureObject(t);
-    for (cudaArray_t a : arrays_) cudaFreeArray(a);
-    textures_.clear();
-    arrays_.clear();
-    std::vector<TextureView> views;
-    for (const TextureData& td : scene.textures()) {
+    // Existing texture objects are kept; only textures added since the last upload are created.
+    if (textures_.size() == scene.textures().size() && tex_views_.ptr) return;
+    std::vector<TextureView>& views = tex_views_host_;
+    for (size_t ti = textures_.size(); ti < scene.textures().size(); ++ti) {
+      const TextureData& td = scene.textures()[ti];
       cudaChannelFormatDesc ch = cudaCreateChannelDesc<uchar4>();
       cudaArray_t arr;
       CUDA_CHECK(cudaMallocArray(&arr, &ch, size_t(td.width), size_t(td.height)));
@@ -361,11 +427,13 @@ class CudaBackend final : public Backend {
   void build_accels(const Scene& scene) {
     const auto& meshes = scene.meshes();
     const auto& insts = scene.instances();
-    gas_.clear();
+    // GAS only for meshes that have none yet (meshes are never modified once added).
+    size_t first_new = gas_handles_.size();
     gas_.resize(meshes.size());
-    std::vector<OptixTraversableHandle> gas_handles(meshes.size(), 0);
+    gas_handles_.resize(meshes.size(), 0);
+    std::vector<OptixTraversableHandle>& gas_handles = gas_handles_;
     const unsigned geom_flags = OPTIX_GEOMETRY_FLAG_REQUIRE_SINGLE_ANYHIT_CALL;
-    for (size_t mi = 0; mi < meshes.size(); ++mi) {
+    for (size_t mi = first_new; mi < meshes.size(); ++mi) {
       const MeshRecord& m = meshes[mi];
       if (m.tri_count == 0) continue;
       CUdeviceptr verts = positions_.dptr() + CUdeviceptr(m.vtx_offset) * sizeof(Vec3);
@@ -391,7 +459,7 @@ class CudaBackend final : public Backend {
       std::memcpy(o.transform, r.to_world.m, sizeof(o.transform));  // 3x4 row-major, same layout
       o.instanceId = unsigned(i);
       o.sbtOffset = 0;
-      o.visibilityMask = gas_handles[r.mesh] ? 255 : 0;
+      o.visibilityMask = (gas_handles[r.mesh] && !r.hidden) ? 255 : 0;
       bool masked = r.material >= 0 && scene.materials()[r.material].alpha_mode == kAlphaMask;
       o.flags = masked ? OPTIX_INSTANCE_FLAG_NONE : OPTIX_INSTANCE_FLAG_DISABLE_ANYHIT;
       o.traversableHandle = gas_handles[r.mesh];
@@ -418,6 +486,12 @@ class CudaBackend final : public Backend {
   std::vector<cudaArray_t> arrays_;
   std::vector<cudaTextureObject_t> textures_;
   std::vector<DeviceBuffer> gas_;
+  std::vector<OptixTraversableHandle> gas_handles_;
+  std::vector<TextureView> tex_views_host_;
+  size_t uploaded_positions_ = size_t(-1), uploaded_meshes_ = size_t(-1);
+  uint64_t uploaded_env_version_ = uint64_t(-1);
+  DeviceBuffer cmf_, preview_buf_, lum_buf_;
+  std::vector<float> cmf_host_;
   DeviceBuffer ias_, instances_buf_;
   OptixTraversableHandle ias_handle_ = 0;
   SceneView scene_view_;

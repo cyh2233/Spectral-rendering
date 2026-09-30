@@ -120,6 +120,7 @@ class Scene {
   const EnvDistData& env_dist() const { return env_dist_; }
   const EnvView& env_params() const { return env_; }
   int32_t env_light_index() const { return env_light_; }
+  uint64_t env_version() const { return env_version_; }  // bumped by set_environment
   int32_t sun_light_index() const { return sun_light_; }
   bool has_sun() const {
     for (const auto& l : user_lights_)
@@ -147,6 +148,7 @@ class Scene {
   EnvView env_;
   std::vector<float> d65n_bands_;
   int32_t env_light_ = -1, sun_light_ = -1;
+  uint64_t env_version_ = 0;
   bool finalized_ = false;
 };
 

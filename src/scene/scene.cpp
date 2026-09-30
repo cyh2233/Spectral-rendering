@@ -190,6 +190,7 @@ void Scene::set_instance_seg_id(uint32_t i, uint32_t seg_id) { instances_.at(i).
 void Scene::set_environment(int w, int h, std::vector<float> data, float scale, float rotation) {
   if (w <= 0 || h <= 0 || data.size() != size_t(w) * h * grid.n) throw std::runtime_error("Invalid environment table");
   env_data_ = std::move(data);
+  ++env_version_;
   env_.present = 1;
   env_.width = w;
   env_.height = h;

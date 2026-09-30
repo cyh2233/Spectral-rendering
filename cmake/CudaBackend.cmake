@@ -31,7 +31,9 @@ add_custom_command(OUTPUT ${SPECTRAL_PTX_CPP}
   COMMAND_EXPAND_LISTS
   VERBATIM)
 
-target_sources(spectral PRIVATE src/backend/cuda/cuda_backend.cpp ${SPECTRAL_PTX_CPP})
+target_sources(spectral PRIVATE src/backend/cuda/cuda_backend.cpp src/backend/cuda/preview_kernels.cu ${SPECTRAL_PTX_CPP})
+set_target_properties(spectral PROPERTIES CUDA_STANDARD 17 CUDA_STANDARD_REQUIRED ON)
+target_compile_options(spectral PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:--expt-relaxed-constexpr>)
 target_include_directories(spectral PRIVATE ${OPTIX_INCLUDE_DIR})
 target_link_libraries(spectral PRIVATE CUDA::cudart CUDA::cuda_driver)
 target_compile_definitions(spectral PRIVATE SPECTRAL_HAS_CUDA=1)
