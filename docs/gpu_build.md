@@ -5,19 +5,24 @@ inside a single OptiX ray-generation program. OptiX only performs ray/triangle t
 (one GAS per mesh, one IAS over instances, any-hit for alpha-masked foliage).
 
 ## Requirements
-- NVIDIA driver supporting CUDA 12.8+ (Blackwell / RTX PRO 6000: driver R570 or newer)
-- CUDA Toolkit >= 12.0 (12.8+ recommended for sm_120)
-- OptiX SDK >= 8.0 (developed against OptiX 9.x headers)
+- NVIDIA driver R570 or newer (Blackwell / RTX PRO 6000); `nvidia-smi` must work
+- CUDA Toolkit >= 12.0 (12.8+ for native sm_120 code); the driver must be at least as new as the toolkit
+  (`nvidia-smi` "CUDA Version" >= `nvcc --version`), otherwise the PTX cannot be loaded
 - CMake >= 3.20
+- OptiX: nothing to install. The OptiX runtime is part of the driver; the headers are fetched at configure
+  time from github.com/NVIDIA/optix-dev (tag `SPECTRAL_OPTIX_TAG`, default `v9.0.0`, which needs R570+).
+  Offline machines: `-DOPTIX_ROOT=/path/to/NVIDIA-OptiX-SDK-9.x` (or `-DSPECTRAL_FETCH_OPTIX=OFF`).
 
 ## Configure and build
 ```bash
-cmake -S . -B build-gpu -G Ninja -DCMAKE_BUILD_TYPE=Release \
-      -DSPECTRAL_ENABLE_CUDA=ON -DOPTIX_ROOT=/path/to/NVIDIA-OptiX-SDK-9.x \
-      -DCMAKE_CUDA_ARCHITECTURES=120      # Blackwell; default 86 (PTX JIT-compiled by the driver)
+cmake -S . -B build-gpu -G Ninja -DCMAKE_BUILD_TYPE=Release -DSPECTRAL_ENABLE_CUDA=ON
 cmake --build build-gpu
 ctest --test-dir build-gpu                 # CPU tests (GPU is exercised by the comparison below)
 ```
+`scripts/setup.sh` does all of this (plus the Python module and tests). The configure log shows
+`CUDA architectures: 120` (read from `nvidia-smi --query-gpu=compute_cap`; override with
+`-DCMAKE_CUDA_ARCHITECTURES=...`) and `OptiX headers: ...`. With nvcc older than 12.8 on Blackwell the build
+falls back to sm_90 PTX, which the driver JIT-compiles.
 Windows (MSVC): same options with `-G "Visual Studio 17 2022"`; the default OptiX install path
 `C:/ProgramData/NVIDIA Corporation/OptiX SDK 9.0.0` is searched automatically.
 
@@ -32,10 +37,12 @@ Mean per-band difference should be below 1 %; depth and segmentation AOVs should
 - CLI: `spectral_render scene.json --backend cuda`
 
 ## What was verified without a GPU
-This repository's CI container has no GPU and no nvcc. `scripts/check_cuda_compile.sh` compiles the
-device programs to PTX with clang's CUDA mode and syntax-checks the host backend against the real
-CUDA 12.9 and OptiX 9.1 headers. The first run on a GPU machine should still be treated as a
-validation step (compare_backends.py).
+The development container has no GPU. `scripts/check_cuda_build.sh` assembles a CUDA toolkit from NVIDIA's
+pip wheels (real nvcc 13.x) and runs the real CMake build with `-DSPECTRAL_ENABLE_CUDA=ON` (OptiX headers
+fetched), then runs the tests on the CPU fallback: device programs, preview kernels and the host backend all
+compile and link, and the PTX exports the `params` launch-parameter symbol as `.visible`.
+`scripts/check_cuda_compile.sh` is an older clang-based check (PTX + host syntax only).
+The first run on a GPU machine is still the real validation step (compare_backends.py).
 
 ## Memory
 Film: `width * height * bands * 4` bytes on the device (1920x1080x125 ~ 1.04 GB), plus the

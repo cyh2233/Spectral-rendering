@@ -10,7 +10,11 @@ using spectral::cuda::LaunchParams;
 
 // Launch parameters as raw constant storage: kernel structs carry default member initializers,
 // which CUDA does not allow for __constant__ objects. The byte size equals sizeof(LaunchParams).
-extern "C" __constant__ __align__(16) unsigned char params[sizeof(LaunchParams)];
+// OptiX binds it by name (pipelineLaunchParamsVariableName), so it must be a .visible PTX symbol: the PTX is
+// compiled with -rdc=true (cmake/CudaBackend.cmake); without it nvcc emits a module-local .const.
+extern "C" {
+__constant__ __align__(16) unsigned char params[sizeof(LaunchParams)];
+}
 
 static __forceinline__ __device__ const LaunchParams& P() {
   return *reinterpret_cast<const LaunchParams*>(params);

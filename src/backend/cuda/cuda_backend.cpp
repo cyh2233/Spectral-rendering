@@ -108,7 +108,12 @@ class CudaBackend final : public Backend {
  public:
   CudaBackend() {
     CUDA_CHECK(cudaFree(nullptr));  // initialize the primary context
-    OPTIX_CHECK(optixInit());
+    // optixGetErrorName() goes through the function table that optixInit() loads, so report the raw code here.
+    if (OptixResult r = optixInit(); r != OPTIX_SUCCESS)
+      throw std::runtime_error("optixInit failed (OptixResult " + std::to_string(int(r)) +
+                               "): the NVIDIA driver does not support the OptiX ABI of the headers used at build time " +
+                               "(OptiX " + std::to_string(OPTIX_VERSION) + "); update the driver or rebuild with " +
+                               "-DSPECTRAL_OPTIX_TAG=<older tag> / -DOPTIX_ROOT=<older SDK>");
     OptixDeviceContextOptions opts = {};
     opts.logCallbackFunction = &optix_log;
     opts.logCallbackLevel = 2;
