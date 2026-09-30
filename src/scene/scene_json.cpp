@@ -599,6 +599,18 @@ class SceneBuilder::Impl {
     }
     if (o.contains("primitive")) {
       std::string p = o["primitive"];
+      // Identical primitive shapes share one mesh (and BLAS/GAS); only pose/material/seg differ.
+      json shape = o;
+      for (const char* k : {"transform", "translate", "rotation", "rotate_deg", "scale", "seg_id", "material", "name"})
+        shape.erase(k);
+      std::string shape_key = shape.dump();
+      int32_t mat = o.contains("material") ? resolve_material(o["material"], where + ".material") : default_material();
+      auto cached = primitive_meshes_.find(shape_key);
+      if (cached != primitive_meshes_.end()) {
+        uint32_t id = sc.add_instance(cached->second, xf, mat, seg);
+        created.push_back({id, Affine::identity()});
+        return created;
+      }
       MeshData md;
       if (p == "sphere") md = make_sphere(o.value("radius", 1.f), o.value("segments", 64), o.value("rings", 32));
       else if (p == "quad") {
@@ -609,16 +621,34 @@ class SceneBuilder::Impl {
         md = make_box(s.at(0), s.at(1), s.at(2));
       } else if (p == "disk") {
         md = make_disk(o.value("radius", 1.f), o.value("segments", 64));
+      } else if (p == "mesh") {
+        // Inline triangle mesh: flat arrays "positions" (xyz...), "indices", optional "normals", "uvs".
+        auto pos = o.at("positions").get<std::vector<float>>();
+        auto idx = o.at("indices").get<std::vector<uint32_t>>();
+        if (pos.size() % 3 || idx.size() % 3) fail(where, "mesh positions/indices must be multiples of 3");
+        for (size_t k = 0; k < pos.size(); k += 3) md.positions.push_back(Vec3(pos[k], pos[k + 1], pos[k + 2]));
+        md.indices = idx;
+        if (o.contains("normals")) {
+          auto n = o["normals"].get<std::vector<float>>();
+          if (n.size() != pos.size()) fail(where, "mesh normals must match positions");
+          for (size_t k = 0; k < n.size(); k += 3) md.normals.push_back(Vec3(n[k], n[k + 1], n[k + 2]));
+        }
+        if (o.contains("uvs")) {
+          auto t = o["uvs"].get<std::vector<float>>();
+          if (t.size() / 2 != md.positions.size()) fail(where, "mesh uvs must have 2 values per vertex");
+          for (size_t k = 0; k < t.size(); k += 2) md.uvs.push_back(Vec2(t[k], t[k + 1]));
+        }
+        md.name = o.value("name", std::string("mesh"));
       } else {
-        fail(where + ".primitive", "sphere | quad | box | disk");
+        fail(where + ".primitive", "sphere | quad | box | disk | mesh");
       }
       if (o.value("flip_normals", false)) {
         for (auto& n : md.normals) n = -n;
         for (size_t t = 0; t < md.indices.size(); t += 3) std::swap(md.indices[t + 1], md.indices[t + 2]);
       }
-      int32_t mat = o.contains("material") ? resolve_material(o["material"], where + ".material") : default_material();
       md.material = mat;
       uint32_t mesh = sc.add_mesh(md);
+      primitive_meshes_[shape_key] = mesh;
       uint32_t id = sc.add_instance(mesh, xf, mat, seg);
       created.push_back({id, Affine::identity()});
       return created;
@@ -764,6 +794,7 @@ class SceneBuilder::Impl {
   SkyTabulation sky_tab_;
   json sky_json_;
   std::map<std::string, int32_t> spectrum_cache_;
+  std::map<std::string, uint32_t> primitive_meshes_;
   std::shared_ptr<Scene> scene_;
   std::vector<std::string> library_dirs_;
   std::map<std::string, std::string> library_index_;

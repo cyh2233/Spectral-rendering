@@ -93,9 +93,14 @@ if(SPECTRAL_BUILD_PYTHON)
   target_link_libraries(_spectral PRIVATE spectral)
   # The package directory is python/spectral_renderer; the extension is built next to a copy of it.
   set_target_properties(_spectral PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/python/spectral_renderer)
-  add_custom_command(TARGET _spectral POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_SOURCE_DIR}/python/spectral_renderer/__init__.py
-            ${CMAKE_BINARY_DIR}/python/spectral_renderer/__init__.py)
+  # Copied by its own rule so edits to the pure-Python wrapper are picked up without relinking the extension.
+  set(_py_init_src ${CMAKE_CURRENT_SOURCE_DIR}/python/spectral_renderer/__init__.py)
+  set(_py_init_dst ${CMAKE_BINARY_DIR}/python/spectral_renderer/__init__.py)
+  add_custom_command(OUTPUT ${_py_init_dst}
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${_py_init_src} ${_py_init_dst}
+    DEPENDS ${_py_init_src})
+  add_custom_target(spectral_renderer_py ALL DEPENDS ${_py_init_dst})
+  add_dependencies(_spectral spectral_renderer_py)
 endif()
 
 if(SPECTRAL_BUILD_TESTS)

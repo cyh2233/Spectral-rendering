@@ -163,3 +163,25 @@ TEST_CASE("spectrum integral normalization (Blender lamp watts)") {
   auto le = s->band_spectrum(s->materials()[0].emission_spec);
   CHECK(from_bands(le, s->grid).integral(380.f, 780.f) == doctest::Approx(25.0).epsilon(2e-2));
 }
+
+TEST_CASE("inline mesh primitive") {
+  json j = {{"instances", {{{"primitive", "mesh"}, {"positions", {0, 0, 0, 1, 0, 0, 0, 0, -1}}, {"indices", {0, 1, 2}},
+                            {"seg_id", 3}}}}};
+  auto s = load_scene_json(j, ".");
+  REQUIRE(s->meshes().size() == 1);
+  CHECK(s->meshes()[0].tri_count == 1);
+  CHECK(s->instances()[0].seg_id == 3);
+  json bad = {{"instances", {{{"primitive", "mesh"}, {"positions", {0, 0}}, {"indices", {0, 1, 2}}}}}};
+  CHECK_THROWS(load_scene_json(bad, "."));
+}
+
+TEST_CASE("identical primitives share one mesh") {
+  json j = {{"materials", {{"definitions", {{"a", {{"reflectance", 0.2}}}, {"b", {{"reflectance", 0.8}}}}}}},
+            {"instances", {{{"primitive", "box"}, {"material", "a"}, {"translate", {0, 0, 0}}},
+                           {{"primitive", "box"}, {"material", "b"}, {"translate", {3, 0, 0}}, {"scale", {2, 1, 1}}},
+                           {{"primitive", "box"}, {"size", {2, 2, 2}}, {"material", "a"}}}}};
+  auto s = load_scene_json(j, ".");
+  CHECK(s->meshes().size() == 2);
+  CHECK(s->instances()[0].mesh == s->instances()[1].mesh);
+  CHECK(s->instances()[0].material != s->instances()[1].material);
+}

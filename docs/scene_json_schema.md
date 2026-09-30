@@ -38,9 +38,11 @@ Asset instance:
   "seg_id_by_material": { "(?i)road": 1 }, "seg_id_by_node": { "^Car_01$": 14 },
   "material_overrides": [ { "match": "(?i)paint", "reflectance": "approx_car_paint_red" } ] }
 ```
-Primitive instance: `"primitive": "sphere" | "quad" | "box" | "disk"` with `radius`, `size`,
+Primitive instance: `"primitive": "sphere" | "quad" | "box" | "disk" | "mesh"` with `radius`, `size`,
 `segments`, `rings`, `flip_normals`, and `"material"` (a name from `materials.definitions` or an
-inline material object). Quads/disks lie in the XZ plane facing +Y.
+inline material object). Quads/disks lie in the XZ plane facing +Y. `"mesh"` takes flat arrays
+`positions` (x, y, z, ...), `indices` (3 per triangle, counter-clockwise = front) and optional
+`normals` / `uvs`.
 
 Transforms: `transform` (4x4/3x4 row-major), or `translate` + `rotate_deg` (extrinsic X, then Y,
 then Z) or `rotation` (quaternion) + `scale` (number or `[x, y, z]`), composed as T·R·S.

@@ -62,3 +62,15 @@ def test_camera_lights_and_modes():
         assert s.preview(mode).shape == (20, 32, 3)
     with pytest.raises(Exception):
         s.preview("bogus")
+
+
+def test_numpy_values_in_instance_dicts():
+    s = sr.Session(SCENE, backend="cpu", threads=2)
+    m = np.eye(4)[:3]
+    m[:, 3] = [0.0, 0.5, -5.0]
+    h = s.spawn({"primitive": "box", "size": np.ones(3), "material": {"base_color": [0.6, 0.05, 0.05]},
+                 "transform": m, "seg_id": np.uint32(14)})
+    s.set_transform(h, m + np.array([[0, 0, 0, 1.0]] * 3) * np.array([1.0, 0, 0])[:, None])
+    s.reset()
+    s.render(1)
+    assert s.preview("srgb").ndim == 3

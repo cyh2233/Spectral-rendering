@@ -20,8 +20,17 @@ import numpy as np
 from ._spectral import Session as _Session, __version__  # noqa: F401
 
 
+def _np_default(o: Any):
+    if isinstance(o, np.ndarray):
+        return o.tolist()
+    if isinstance(o, np.generic):
+        return o.item()
+    raise TypeError(f"Object of type {type(o).__name__} is not JSON serializable")
+
+
 def _js(x: Any) -> str:
-    return x if isinstance(x, str) else json.dumps(x)
+    """JSON text from a str or a dict/list that may contain numpy arrays and scalars."""
+    return x if isinstance(x, str) else json.dumps(x, default=_np_default)
 
 
 class Session:
